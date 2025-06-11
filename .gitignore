@@ -29,8 +29,5 @@ coverage
 .DS_Store
 Thumbs.db
 
-# Turborepo
-.turbo
-
 # Prisma
 packages/prisma/generated
