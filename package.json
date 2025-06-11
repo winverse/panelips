@@ -10,7 +10,8 @@
     "dev": "turbo run dev",
     "format": "biome format --write .",
     "check": "biome check .",
-    "check:fix": "biome check --apply ."
+    "check:fix": "biome check --apply .",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
@@ -19,5 +20,6 @@
   },
   "engines": {
     "bun": ">=1.0.0"
-  }
+  },
+  "packageManager": "bun@1.2.15"
 }
