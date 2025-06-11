@@ -24,12 +24,6 @@ coverage
 
 # IDE
 .idea
-.vscode/*
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # OS
 .DS_Store

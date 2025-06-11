@@ -2,26 +2,22 @@
   "name": "panelips",
   "version": "1.0.0",
   "description": "Platform for YouTube panelists to share their expertise",
+  "author": "public.winverse@gmail.com",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
     "format": "biome format --write .",
     "check": "biome check .",
-    "check:apply": "biome check --apply ."
+    "check:fix": "biome check --apply ."
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
-    "turbo": "latest",
+    "turbo": "^2.5.4",
     "typescript": "^5.5.3"
   },
   "engines": {
     "bun": ">=1.0.0"
-  },
-  "packageManager": "bun@latest"
+  }
 }

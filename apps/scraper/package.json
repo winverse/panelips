@@ -1,54 +1,37 @@
 {
   "name": "scraper",
-  "version": "0.1.0",
+  "version": "0.0.1",
+  "description": "",
+  "author": "public.winverse@gmail.com",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "format": "biome format --write .",
     "start": "nest start",
-    "dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "lint": "biome check .",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "dev": "nest start --watch --exec \"bun\"",
+    "debug": "nest start --debug --watch --exec \"bun\"",
+    "prod": "bun dist/main.js",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:cov": "bun test --coverage",
+    "test:unit": "bun test src",
+    "test:e2e": "bun test test"
   },
   "dependencies": {
-    "@nestjs/common": "latest",
-    "@nestjs/core": "latest",
-    "@nestjs/platform-express": "latest",
-    "reflect-metadata": "latest",
-    "rxjs": "latest"
+    "@nestjs/common": "^11.0.7",
+    "@nestjs/core": "^11.0.7",
+    "@nestjs/platform-fastify": "^11.0.7",
+    "fastify": "^5.1.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "latest",
-    "@nestjs/schematics": "latest",
-    "@nestjs/testing": "latest",
-    "@types/express": "latest",
-    "@types/jest": "latest",
-    "@types/node": "latest",
-    "@types/supertest": "latest",
-    "jest": "latest",
-    "source-map-support": "latest",
-    "supertest": "latest",
-    "ts-jest": "latest",
-    "ts-loader": "latest",
-    "ts-node": "latest",
-    "tsconfig-paths": "latest",
-    "typescript": "latest"
-  },
-  "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": ["**/*.(t|j)s"],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.7",
+    "@types/bun": "latest",
+    "@types/node": "^22.10.7",
+    "bun": "^1.2.15",
+    "typescript": "^5.7.3"
   }
 }
