@@ -1,0 +1,14 @@
+{
+  "name": "@packages/scripts",
+  "module": "src/index.ts",
+  "type": "module",
+  "main": "./src/index.ts",
+  "devDependencies": {
+    "@aws-sdk/client-ssm": "^3.828.0",
+    "@types/bun": "latest",
+    "inquirer": "^12.6.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
