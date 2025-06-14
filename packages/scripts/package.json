@@ -4,6 +4,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "devDependencies": {
+    "@packages/tsconfig": "workspace: *",
     "@aws-sdk/client-ssm": "^3.828.0",
     "@types/bun": "latest",
     "inquirer": "^12.6.3"

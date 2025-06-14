@@ -1,10 +1,11 @@
 {
-  "name": "scraper",
+  "name": "@apps/scraper",
   "version": "0.0.1",
   "description": "",
   "author": "public.winverse@gmail.com",
   "private": true,
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -26,12 +27,14 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@packages/scripts": "workspace: *",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.7",
+    "@packages/scripts": "workspace: *",
+    "@packages/tsconfig": "workspace: *",
     "@types/bun": "latest",
     "@types/node": "^22.10.7",
+    "@types/supertest": "^6.0.3",
     "bun": "^1.2.15",
     "typescript": "^5.7.3"
   }

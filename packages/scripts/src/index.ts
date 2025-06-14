@@ -1,1 +1,1 @@
-export * from './ssm';
+export * from './ssm.js';

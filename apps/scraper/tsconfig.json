@@ -1,16 +1,9 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.json",
+  "extends": "@packages/tsconfig/nest-config.json",
   "compilerOptions": {
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "outDir": "./dist",
     "baseUrl": "./",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "outDir": "./dist"
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["./src/**/*", "./test/**/*", "./scripts/*"],
   "exclude": ["node_modules", "dist"]
 }
