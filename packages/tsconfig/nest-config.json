@@ -5,8 +5,6 @@
     "moduleResolution": "nodenext",
     "target": "ES2023",
     "lib": ["ES2024"],
-    "baseUrl": "./",
-    "outDir": "./dist",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -23,13 +21,6 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "paths": {
-      "@providers/*": ["./src/providers/*"],
-      "@filters/*": ["./src/common/filters/*"],
-      "@interfaces/*": ["./src/common/interfaces/*"],
-      "@modules/*": ["./src/modules/*"],
-      "@src/*": ["./src/*"]
-    }
   },
   "exclude": ["node_modules"]
 }

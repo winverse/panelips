@@ -2,7 +2,14 @@
   "extends": "@packages/tsconfig/nest-config.json",
   "compilerOptions": {
     "baseUrl": "./",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@providers/*": ["./src/providers/*"],
+      "@filters/*": ["./src/common/filters/*"],
+      "@interfaces/*": ["./src/common/interfaces/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@src/*": ["./src/*"]
+    }
   },
   "include": ["./src/**/*", "./test/**/*", "./scripts/*"],
   "exclude": ["node_modules", "dist"]
