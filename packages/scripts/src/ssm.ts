@@ -7,7 +7,7 @@ import {
   PutParameterCommandInput,
   SSMClient,
 } from '@aws-sdk/client-ssm';
-import inquirer from 'inquirer';
+import { select } from '@inquirer/prompts';
 
 type OperationType = 'push' | 'pull';
 type Environment = 'development' | 'stage' | 'production' | 'test';
@@ -63,7 +63,7 @@ export class SSMScript {
   private getEnvFilePath(): string {
     return path.resolve(
       process.cwd(),
-      `${this.envFolderPath}/.env.${this.environment}`
+      `${this.envFolderPath}/.env.${this.environment}`,
     );
   }
 
@@ -123,41 +123,38 @@ export class SSMScript {
       environment: ['development', 'stage', 'production', 'test'],
     };
 
-    const prompts = [];
+    let command: OperationType | undefined;
+    let environment: Environment | undefined;
 
     if (!process.argv[2]) {
-      prompts.push({
-        type: 'list' as const,
-        name: 'command',
-        message:
-          'Please choose the operation type: [Use arrows to move, type to filter]',
-        choices: choices.command,
-        default: 'pull',
+      command = await select({
+        message: 'Please choose the operation type:',
+        choices: choices.command.map((cmd) => ({
+          name: cmd,
+          value: cmd as OperationType,
+        })),
       });
     }
 
     if (!this.environment) {
-      prompts.push({
-        type: 'list' as const,
-        name: 'environment',
-        message:
-          'Please choose a environment: [Use arrows to move, type to filter]',
-        choices: choices.environment,
-        default: 'production',
+      environment = await select({
+        message: 'Please choose a environment:',
+        choices: choices.environment.map((env) => ({
+          name: env,
+          value: env as Environment,
+        })),
       });
     }
 
-    const responses = prompts.length > 0 ? await inquirer.prompt(prompts) : {};
-
     return {
-      command: (process.argv[2] as OperationType) || responses.command,
-      environment: (this.environment as Environment) || responses.environment,
+      command: (process.argv[2] as OperationType) || command,
+      environment: (this.environment as Environment) || environment,
     };
   }
 
   private printSelectedLog(
     command: OperationType,
-    environment: Environment
+    environment: Environment,
   ): void {
     console.info('Selected Options:');
     console.info(`command: ${command}`);
@@ -207,7 +204,7 @@ export class SSMScript {
       this.writeEnvFile(envContent);
 
       console.info(
-        `✅ Parameter download successful! path: ${parameterName}, version: ${response.Parameter?.Version}`
+        `✅ Parameter download successful! path: ${parameterName}, version: ${response.Parameter?.Version}`,
       );
     } catch (error) {
       if (error instanceof Error && error.name === 'ParameterNotFound') {
@@ -230,7 +227,7 @@ export class SSMScript {
   private parseParameterValue(value: string | undefined): string {
     if (!value) {
       throw new Error(
-        'The path parameter exists, but retrieving the value failed'
+        'The path parameter exists, but retrieving the value failed',
       );
     }
 
@@ -249,24 +246,24 @@ export class SSMScript {
       const envContent = this.readEnvFile();
       const response = await this.uploadParameterToSSM(
         parameterName,
-        envContent
+        envContent,
       );
 
       console.info(
-        `✅ Parameter upload successful! path: ${parameterName}, version: ${response.Version}`
+        `✅ Parameter upload successful! path: ${parameterName}, version: ${response.Version}`,
       );
     } catch (error) {
       throw new Error(
         `Failed to push parameter: ${
           error instanceof Error ? error.message : error
-        }`
+        }`,
       );
     }
   }
 
   private async uploadParameterToSSM(
     parameterName: string,
-    envContent: string
+    envContent: string,
   ) {
     const input: PutParameterCommandInput = {
       Name: parameterName,
@@ -298,7 +295,7 @@ export class SSMScript {
 
       if (Number.isNaN(version) || version < 0) {
         throw new Error(
-          'Invalid version format. The version must be a numeric value'
+          'Invalid version format. The version must be a numeric value',
         );
       }
     }

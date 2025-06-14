@@ -4,10 +4,10 @@
   "type": "module",
   "main": "./src/index.ts",
   "devDependencies": {
+    "@inquirer/prompts": "^7.5.3",
     "@packages/tsconfig": "workspace: *",
     "@aws-sdk/client-ssm": "^3.828.0",
-    "@types/bun": "latest",
-    "inquirer": "^12.6.3"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
