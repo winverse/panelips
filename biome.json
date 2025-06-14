@@ -21,5 +21,14 @@
       "trailingComma": "es5",
       "semicolons": "always"
     }
+  },
+  "files": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".turbo/**",
+      "coverage/**",
+      "*.d.ts"
+    ]
   }
 }

@@ -1,4 +1,7 @@
 {
   "extends": "@packages/tsconfig/nest-config.build.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+  },
   "include": ["./src/*"]
 }
