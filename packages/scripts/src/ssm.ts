@@ -9,26 +9,6 @@ import {
 } from '@aws-sdk/client-ssm';
 import { select } from '@inquirer/prompts';
 
-type OperationType = 'push' | 'pull';
-type Environment = 'development' | 'stage' | 'production' | 'test';
-
-type Option = {
-  packageName: string;
-  envFolderPath?: string;
-  region?: string;
-  ssmPrefix?: string;
-};
-
-type Choices = {
-  command: OperationType[];
-  environment: Environment[];
-};
-
-interface CommandLineFlags {
-  environment: Environment | '';
-  version: number;
-}
-
 export class SSMScript {
   private readonly packageName: string;
   private readonly envFolderPath: string;
@@ -302,4 +282,24 @@ export class SSMScript {
 
     return { environment, version };
   }
+}
+
+type OperationType = 'push' | 'pull';
+type Environment = 'development' | 'stage' | 'production' | 'test';
+
+type Option = {
+  packageName: string;
+  envFolderPath?: string;
+  region?: string;
+  ssmPrefix?: string;
+};
+
+type Choices = {
+  command: OperationType[];
+  environment: Environment[];
+};
+
+interface CommandLineFlags {
+  environment: Environment | '';
+  version: number;
 }

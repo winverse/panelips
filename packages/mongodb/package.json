@@ -1,0 +1,13 @@
+{
+  "name": "mongodb",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@packages/tsconfig": "workspace: *",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
