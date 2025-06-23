@@ -3,6 +3,9 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "dependencies": {
+    "@prisma/client": "^6.10.1"
+  },
   "devDependencies": {
     "@packages/tsconfig": "workspace: *",
     "@types/bun": "latest"

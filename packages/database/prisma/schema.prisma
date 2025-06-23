@@ -1,5 +1,5 @@
 generator client {
-  provider     = "prisma-client"
+  provider     = "prisma-client-js"
   output       = "../src/generated/mongo"
   moduleFormat = "esm"
 }
@@ -7,4 +7,129 @@ generator client {
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+model YouTubeChannel {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  channelId       String   @unique
+  channelName     String
+  channelUrl      String
+  description     String?
+  thumbnailUrl    String?
+  subscriberCount Int?
+  videoCount      Int?
+  categories      String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  videos YouTubeVideo[]
+
+  @@map("youtube_channels")
+}
+
+model YouTubeVideo {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  videoId           String          @unique
+  title             String
+  publishedAt       DateTime
+  channelId         String          @db.ObjectId
+  channel           YouTubeChannel  @relation(fields: [channelId], references: [id])
+  rawScript         String?
+  structuredSummary Json? // { }
+  isProcessed       Boolean         @default(false)
+  aiProcessStatus   AiProcessStatus @default(PENDING)
+  aiProcessError    String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  appearances Appearances[]
+  insights    Insight[]
+
+  @@map("youtube_videos")
+}
+
+model Panel {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  expertise          String[]
+  profileImageUrl    String?
+  jobPosition        String?
+  accuracyScore      Float    @default(0) // 예측 정확도 점수
+  totalPredictions   Int      @default(0) // 총 예측 횟수
+  correctPredictions Int      @default(0) // 맞은 예측 횟수
+
+  appearances Appearances[]
+  insights    Insight[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("panels")
+}
+
+model Appearances {
+  id      String       @id @default(auto()) @map("_id") @db.ObjectId
+  panelId String       @db.ObjectId
+  panel   Panel        @relation(fields: [panelId], references: [id])
+  videoId String       @db.ObjectId
+  video   YouTubeVideo @relation(fields: [videoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([panelId, videoId])
+  @@map("appearances")
+}
+
+// 인사이트/예측 정보
+model Insight {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId // MongoDB 고유 ID
+  statement        String
+  context          String? // 해당 주장이 나온 문맥 (스크립트 일부) (선택 사항)
+  timestampInVideo String? // 비디오 내 발언 시점 (예: "01:23:45") (선택 사항)
+  topics           String[] // 관련 주제 태그 (예: ["미래산업", "에너지", "지정학"])
+
+  panel  Panel  @relation(fields: [paneId], references: [id])
+  paneId String @db.ObjectId
+
+  video   YouTubeVideo @relation(fields: [videoId], references: [id])
+  videoId String       @db.ObjectId
+
+  evaluations InsightEvaluation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("insights")
+}
+
+// 인사이트 평가
+model InsightEvaluation {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  score        Float            @default(0)
+  note         String // 평가 내용 및 근거
+  evidenceUrls String[] // 평가 근거 자료 URL (뉴스 기사, 논문 등)
+  status       EvaluationStatus @default(PENDING) // 평가 상태 (열거형)
+
+  insight   Insight @relation(fields: [insightId], references: [id])
+  insightId String  @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("insights_evaluations ")
+}
+
+enum AiProcessStatus {
+  PENDING
+  COMPELETED
+  FAILED
+}
+
+enum EvaluationStatus {
+  PENDING
+  VERIFIED
+  REFUTED
+  ONGOING
 }
