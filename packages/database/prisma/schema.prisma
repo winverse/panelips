@@ -32,19 +32,21 @@ model YouTubeVideo {
   id                String          @id @default(auto()) @map("_id") @db.ObjectId
   videoId           String          @unique
   title             String
-  publishedAt       DateTime
-  channelId         String          @db.ObjectId
-  channel           YouTubeChannel  @relation(fields: [channelId], references: [id])
   rawScript         String?
   structuredSummary Json? // { }
   isProcessed       Boolean         @default(false)
   aiProcessStatus   AiProcessStatus @default(PENDING)
   aiProcessError    String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   appearances Appearances[]
   insights    Insight[]
+
+  channelId String         @db.ObjectId
+  channel   YouTubeChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@map("youtube_videos")
 }
@@ -71,9 +73,9 @@ model Panel {
 model Appearances {
   id      String       @id @default(auto()) @map("_id") @db.ObjectId
   panelId String       @db.ObjectId
-  panel   Panel        @relation(fields: [panelId], references: [id])
+  panel   Panel        @relation(fields: [panelId], references: [id], onDelete: Cascade)
   videoId String       @db.ObjectId
-  video   YouTubeVideo @relation(fields: [videoId], references: [id])
+  video   YouTubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,10 +92,10 @@ model Insight {
   timestampInVideo String? // 비디오 내 발언 시점 (예: "01:23:45") (선택 사항)
   topics           String[] // 관련 주제 태그 (예: ["미래산업", "에너지", "지정학"])
 
-  panel  Panel  @relation(fields: [paneId], references: [id])
-  paneId String @db.ObjectId
+  panel   Panel  @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  panelId String @db.ObjectId
 
-  video   YouTubeVideo @relation(fields: [videoId], references: [id])
+  video   YouTubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
   videoId String       @db.ObjectId
 
   evaluations InsightEvaluation[]
@@ -112,13 +114,13 @@ model InsightEvaluation {
   evidenceUrls String[] // 평가 근거 자료 URL (뉴스 기사, 논문 등)
   status       EvaluationStatus @default(PENDING) // 평가 상태 (열거형)
 
-  insight   Insight @relation(fields: [insightId], references: [id])
+  insight   Insight @relation(fields: [insightId], references: [id], onDelete: Cascade)
   insightId String  @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("insights_evaluations ")
+  @@map("insights_evaluations")
 }
 
 enum AiProcessStatus {

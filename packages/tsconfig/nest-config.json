@@ -20,7 +20,8 @@
     "noFallthroughCasesInSwitch": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "types": ["bun-types"]
   },
   "exclude": ["node_modules"]
 }

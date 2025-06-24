@@ -9,7 +9,8 @@
       "@interfaces/*": ["./src/common/interfaces/*"],
       "@modules/*": ["./src/modules/*"],
       "@src/*": ["./src/*"]
-    }
+    },
+    "types": ["bun-types"]
   },
   "include": ["./src/**/*", "./test/**/*", "./scripts/*"],
   "exclude": ["node_modules", "dist"]
