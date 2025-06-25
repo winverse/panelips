@@ -8,6 +8,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "ssm": "bun run --filter=\"*\" ssm",
     "format": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --apply .",

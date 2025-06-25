@@ -3,10 +3,14 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "ssm": "bun ./scripts/ssm.ts"
+  },
   "dependencies": {
     "@prisma/client": "^6.10.1"
   },
   "devDependencies": {
+    "@packages/scripts": "workspace: *",
     "@packages/tsconfig": "workspace: *",
     "@types/bun": "latest"
   },

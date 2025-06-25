@@ -1,6 +1,6 @@
 generator client {
   provider     = "prisma-client-js"
-  output       = "../src/generated/mongo"
+  output       = "../src/mongodb/generated"
   moduleFormat = "esm"
 }
 
