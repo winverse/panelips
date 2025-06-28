@@ -1,5 +1,0 @@
-@layer reset, base, tokens, recipes, utilities;
-
-h1 {
-  color: red;
-}

@@ -1,11 +1,11 @@
-import { Flex } from '@styled-system/jsx';
-import Image from 'next/image';
-import styles from './page.module.css';
+import { flex, stack, vstack } from '@styled-system/patterns';
 
 export default function Home() {
   return (
     <div>
-      <Flex>Hello world</Flex>
+      <div className={flex({ direction: 'row' })}>
+        <h1 className={vstack({ color: 'red.500' })}>Hello world</h1>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { defineConfig } from '@pandacss/dev';
-import { colors } from '@src/styles/colors';
+import { colors } from '@src/styles/tokens/colors';
 import { globalCss } from '@src/styles/global';
 import { keyframes } from '@src/styles/keyframes';
-import { zIndex } from '@src/styles/zIndex';
+import { zIndex } from '@src/styles/tokens/zIndex';
+import { layers } from '@src/styles/layers';
 
 export default defineConfig({
   // Whether to use css reset
@@ -12,13 +13,9 @@ export default defineConfig({
   include: ['./src/**/*.{js,jsx,ts,tsx}'],
 
   globalCss,
-  // Files to exclude
-  exclude: [],
-
   jsxFramework: 'react',
   jsxFactory: 'panda',
-
-  // Useful for theme customization
+  layers,
   theme: {
     tokens: {
       colors,
@@ -28,7 +25,7 @@ export default defineConfig({
       keyframes,
     },
   },
-
-  // The output directory for your css system
   outdir: 'styled-system',
+  strictTokens: true,
+  strictPropertyValues: true,
 });
