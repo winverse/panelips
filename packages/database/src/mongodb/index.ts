@@ -1,8 +1,1 @@
-
-
-
-
-
-
-
-console.log("jhe")
+console.log('jhe');

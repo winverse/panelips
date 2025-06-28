@@ -11,13 +11,19 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
-  const server = await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
-  return { address: server.address() };
+  const port = process.env.PORT ?? '8080';
+  const server = await app.listen(port);
+  return {
+    address: server.address(),
+    port,
+  };
 }
 
 bootstrap()
-  .then((address) => {
-    console.log(`Application started successfully. Address ${address}`);
+  .then(({ port, address }) => {
+    console.log(
+      `Application started successfully. Address: http://localhost:${port}`,
+    );
   })
   .catch((error) => {
     console.error('Failed to start application:', error);

@@ -13,11 +13,12 @@
     "check": "biome check .",
     "check:fix": "biome check --apply .",
     "test:all": "turbo run test",
-    "clean": "shx rm -rf ./node_modules ./apps/*/node_modules ./packages/*/node_modules ./apps/*/dist ./packages/*/dist"
+    "clean": "shx rm -rf ./node_modules"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.5.3",
+    "@biomejs/biome": "2.0.6",
     "bun-types": "^1.2.17",
+    "shx": "^0.4.0",
     "turbo": "^2.5.4",
     "typescript": "^5.5.3"
   },
