@@ -1,11 +1,14 @@
-import { flex, stack, vstack } from '@styled-system/patterns';
+import { Button } from '@src/components/Button/Button';
+import { css } from '../../styled-system/css';
 
 export default function Home() {
   return (
-    <div>
-      <div className={flex({ direction: 'row' })}>
-        <h1 className={vstack({ color: 'red.500' })}>Hello world</h1>
-      </div>
+    <div className={css({ fontSize: '4xl', fontWeight: 'bold', bg: 'red' })}>
+      Hello 🐼!
+      <p className={css({ bg: 'gold', p: 0, m: 0 })}>hello</p>
+      <Button size="sm" variant="primary">
+        hello
+      </Button>
     </div>
   );
 }
