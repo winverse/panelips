@@ -7,10 +7,6 @@ import type { TrpcContext } from './trpc.interface.js';
 
 @Injectable()
 export class TrpcService {
-  constructor() {
-    console.log('TrpcService constructor called'); // 디버깅용
-  }
-
   private readonly trpc = initTRPC.context<TrpcContext>().create({
     transformer: superjson,
     errorFormatter(opts) {

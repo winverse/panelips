@@ -15,12 +15,7 @@
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
         "noUselessElse": "error",
-        "useImportType": [
-          "error",
-          {
-            "ignoreInjectableClasses": true
-          }
-        ]
+        "useImportType":"off"
       }
     }
   },

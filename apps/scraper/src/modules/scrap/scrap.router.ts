@@ -1,11 +1,9 @@
-import { Controller } from '@nestjs/common';
-import type { TrpcService } from '@src/trpc/trpc.service.js';
+import { Injectable } from '@nestjs/common';
+import { TrpcService } from '@src/trpc/trpc.service.js';
 import { z } from 'zod';
 
-@Controller({
-  path: '/scrap',
-})
-export class ScrapController {
+@Injectable()
+export class ScrapRouter {
   constructor(private readonly trpcService: TrpcService) {}
   get router() {
     return this.trpcService.router({

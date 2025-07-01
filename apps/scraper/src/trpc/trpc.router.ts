@@ -1,34 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { APP_ROUTER } from '@constants/token.js';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
 import {
   type FastifyTRPCPluginOptions,
   fastifyTRPCPlugin,
 } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
-// biome-ignore lint/style/useImportType: <explanation>
 import { TrpcService } from './trpc.service.js';
 
+type AppRouter = ReturnType<TrpcService['router']>;
+
 @Injectable()
-export class TrpcRouter {
-  constructor(private readonly trpcService: TrpcService) {}
+export class TrpcRouter implements OnModuleInit {
+  constructor(
+    private readonly adapterHost: HttpAdapterHost,
+    private readonly trpcService: TrpcService,
+    @Inject(APP_ROUTER) private readonly appRouter: AppRouter,
+  ) {}
 
-  async register(app: FastifyInstance) {
-    const appRouter = this.createAppRouter();
+  onModuleInit() {
+    const fastifyInstance =
+      this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
+    this.register(fastifyInstance);
+  }
 
+  private async register(app: FastifyInstance) {
     await app.register(fastifyTRPCPlugin, {
       prefix: '/trpc',
       trpcOptions: {
-        router: appRouter,
-        createContext: async (opts) =>
-          await this.trpcService.createContext(opts),
+        router: this.appRouter,
+        createContext: (opts) => this.trpcService.createContext(opts),
         onError({ path, error }) {
-          // report to error monitoring
           console.error(`Error in tRPC handler on path '${path}':`, error);
         },
-      } satisfies FastifyTRPCPluginOptions<typeof appRouter>['trpcOptions'],
+      } satisfies FastifyTRPCPluginOptions<
+        typeof this.appRouter
+      >['trpcOptions'],
     });
-  }
 
-  private createAppRouter() {
-    return this.trpcService.router({});
+    console.log('✅ tRPC router registered successfully on /trpc');
   }
 }
