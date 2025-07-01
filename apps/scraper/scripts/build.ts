@@ -9,6 +9,7 @@ const optionalRequirePackages = [
   '@nestjs/websockets',
   '@fastify/static',
   '@fastify/view',
+  '@nestjs/platform-express',
 ];
 
 const result = await build({

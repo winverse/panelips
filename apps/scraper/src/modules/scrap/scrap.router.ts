@@ -13,6 +13,7 @@ export class ScrapRouter {
             hello: z.string(),
           }),
         )
+        .output(z.string())
         .query(({ input }) => {
           console.log('input hello', input.hello);
           return 'hello';
