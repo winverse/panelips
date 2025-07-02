@@ -1,6 +1,7 @@
 import { APP_ROUTER } from '@constants/token.js';
-import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import type { AnyRouter } from '@trpc/server';
 import {
   type FastifyTRPCPluginOptions,
   fastifyTRPCPlugin,
@@ -8,20 +9,19 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { TrpcService } from './trpc.service.js';
 
-type AppRouter = ReturnType<TrpcService['router']>;
-
 @Injectable()
-export class TrpcRouter implements OnApplicationBootstrap {
+export class TrpcRouter implements OnModuleInit {
   constructor(
     private readonly adapterHost: HttpAdapterHost,
     private readonly trpcService: TrpcService,
-    @Inject(APP_ROUTER) private readonly appRouter: AppRouter,
+    @Inject(APP_ROUTER) private readonly appRouter: AnyRouter,
   ) {}
 
-  onApplicationBootstrap() {
+  async onModuleInit() {
     const fastifyInstance =
       this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
-    this.register(fastifyInstance);
+    await this.register(fastifyInstance);
+    await this.registerUI(fastifyInstance);
   }
 
   private async register(app: FastifyInstance) {
@@ -40,5 +40,20 @@ export class TrpcRouter implements OnApplicationBootstrap {
       >['trpcOptions'],
     });
     console.log('✅ tRPC router registered successfully on /trpc');
+  }
+
+  private async registerUI(app: FastifyInstance) {
+    if (process.env.NODE_ENV === 'production') return;
+
+    const PORT = process.env.PORT ?? '8080';
+    const { renderTrpcPanel } = await import('trpc-ui');
+    app.get('/panel', (_req, res) => {
+      return res.send(
+        // biome-ignore lint/suspicious/noExplicitAny: AnyRouter type collision
+        renderTrpcPanel(this.appRouter as any, {
+          url: `http://localhost:${PORT}/trpc`,
+        }),
+      );
+    });
   }
 }

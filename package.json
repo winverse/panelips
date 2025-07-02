@@ -4,7 +4,10 @@
   "description": "Platform for YouTube panelists to share their expertise",
   "author": "public.winverse@gmail.com",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -21,6 +24,10 @@
     "shx": "^0.4.0",
     "turbo": "^2.5.4",
     "typescript": "^5.5.3"
+  },
+  "overrides": {
+    "fastify": "^5.4.0",
+    "@trpc/server": "^11.4.3"
   },
   "engines": {
     "bun": ">=1.0.0"

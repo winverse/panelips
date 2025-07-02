@@ -2,17 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { initTRPC } from '@trpc/server';
 import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
 import superjson from 'superjson';
-import type { OpenApiMeta } from 'trpc-to-openapi';
 import type { TrpcContext } from './trpc.interface.js';
 
 @Injectable()
 export class TrpcService {
-  private readonly trpc = initTRPC
-    .meta<OpenApiMeta>()
-    .context<TrpcContext>()
-    .create({
-      transformer: superjson,
-    });
+  private readonly trpc = initTRPC.context<TrpcContext>().create({
+    transformer: superjson,
+  });
 
   get router() {
     return this.trpc.router;
