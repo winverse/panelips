@@ -8,6 +8,7 @@ export class ScrapRouter {
   get router() {
     return this.trpcService.router({
       youtubeChannel: this.trpcService.procedure
+        .meta({ description: 'hello' })
         .input(
           z.object({
             hello: z.string(),
@@ -16,7 +17,7 @@ export class ScrapRouter {
         .output(z.string())
         .query(({ input }) => {
           console.log('input hello', input.hello);
-          return 'hello';
+          return `hello ${input.hello}`;
         }),
     });
   }

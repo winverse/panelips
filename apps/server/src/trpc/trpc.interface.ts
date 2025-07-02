@@ -3,9 +3,13 @@ import type {
   TRPCErrorFormatter,
   TRPCRootObject,
 } from '@trpc/server';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import type superjson from 'superjson';
 
-export type TrpcContext = {};
+export type TrpcContext = {
+  req: FastifyRequest;
+  reply: FastifyReply;
+};
 
 export type TrpcMeta = {};
 
