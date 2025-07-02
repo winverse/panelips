@@ -22,7 +22,7 @@ export class TrpcService {
     req,
     res,
   }: CreateFastifyContextOptions): Promise<TrpcContext> {
-    // console.log('createContext', req, res);
+    console.log('createContext', req, res);
     return {};
   }
 }

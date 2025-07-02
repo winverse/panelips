@@ -4,17 +4,21 @@
   "private": true,
   "scripts": {
     "prepare": "panda codegen",
-    "dev": "next dev",
+    "env:copy": "bun ./scripts/copyEnv.ts",
+    "dev": "bun env:copy -e development && next dev",
     "build": "panda codegen && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ssm": "bun ./scripts/ssm.ts"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "next": "15.3.4"
   },
+
   "devDependencies": {
+    "@packages/scripts": "workspace:*",
     "@pandacss/dev": "^0.54.0",
     "@pandacss/types": "^0.54.0",
     "@types/react": "^19",

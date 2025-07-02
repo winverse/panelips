@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   GetParameterCommand,
   GetParameterCommandInput,
@@ -56,7 +56,7 @@ export class SSMScript {
 
     try {
       return fs.readFileSync(filePath, 'utf8');
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`Failed to read environment file: ${filePath}`);
     }
   }
@@ -71,7 +71,7 @@ export class SSMScript {
 
     try {
       fs.writeFileSync(filePath, content, { encoding: 'utf-8' });
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`Failed to write environment file: ${filePath}`);
     }
   }

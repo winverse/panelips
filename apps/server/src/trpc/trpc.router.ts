@@ -52,6 +52,7 @@ export class TrpcRouter implements OnModuleInit {
         // biome-ignore lint/suspicious/noExplicitAny: AnyRouter type collision
         renderTrpcPanel(this.appRouter as any, {
           url: `http://localhost:${PORT}/trpc`,
+          transformer: 'superjson',
         }),
       );
     });

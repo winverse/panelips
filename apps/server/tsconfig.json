@@ -9,6 +9,7 @@
     "lib": ["ES2024"],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "skipLibCheck": true,
     "paths": {
       "@providers/*": ["./src/providers/*"],
       "@filters/*": ["./src/common/filters/*"],
