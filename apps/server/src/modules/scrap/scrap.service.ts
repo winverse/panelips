@@ -24,15 +24,27 @@ export class ScrapService {
       requestQueue,
       maxRequestRetries: 2,
       useSessionPool: false,
+      browserPoolOptions: {
+        useFingerprints: true,
+        fingerprintOptions: {
+          fingerprintGeneratorOptions: {
+            locales: ['ko-KR', 'ko'],
+            browsers: ['chrome'],
+            devices: ['desktop'],
+            screen: {
+              maxWidth: 1920,
+              maxHeight: 1080,
+              minHeight: 1920,
+              minWidth: 1080,
+            },
+          },
+        },
+      },
       launchContext: {
         launchOptions: {
           channel: 'chrome',
           headless: false, // 서버 환경이므로 headless: true 권장
-          args: [
-            '--proxy-server=direct://',
-            '--proxy-bypass-list=*',
-            '--lang=ko-KR',
-          ],
+          args: ['--proxy-server=direct://', '--proxy-bypass-list=*'],
         },
       },
 
@@ -48,7 +60,7 @@ export class ScrapService {
 
       failedRequestHandler: async ({ page, request, error }) => {
         this.logger.error(`Request ${request.url} failed:`, error);
-        await page.waitForTimeout(3600000);
+        await page.close();
       },
     });
 
@@ -73,8 +85,25 @@ export class ScrapService {
       await page.fill('input[type="email"]', email);
       await page.click('#identifierNext');
 
-      // passkey
+      const passwordInputSelector = 'input[type="password"][name="Passwd"]';
+      const isPasswordVisible = await page
+        .waitForSelector(passwordInputSelector, { timeout: 3000 })
+        .then(() => true)
+        .catch(() => false);
 
+      if (isPasswordVisible) {
+        this.logger.log(
+          '🔑 비밀번호 필드가 감지되었습니다. 비밀번호를 입력합니다.',
+        );
+        await page.fill(passwordInputSelector, password);
+        await page.click('#passwordNext');
+      } else {
+        this.logger.log(
+          '🔑 비밀번호 필드가 없습니다. Passkey 수동 확인을 진행해주세요.',
+        );
+      }
+
+      // passkey
       await page.waitForURL('**/myaccount.google.com/**', {
         timeout: 20000, // 20초 타임아웃
       });
