@@ -16,9 +16,7 @@ export class ScrapRouter {
           }),
         )
         .output(z.string())
-        .mutation(({ input }) => {
-          console.log('input hello', input.googleEmail);
-          console.log('input hello', input.googlePassword);
+        .mutation(async ({ input }) => {
           return `hello ${JSON.stringify(input)}`;
         }),
     });

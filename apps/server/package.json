@@ -17,7 +17,7 @@
     "build": "tsc --project tsconfig.build.json",
     "bundle": "bun ./scripts/bundle.ts",
     "start": "nest start",
-    "dev": "bun ./src/main.ts",
+    "dev": "bun run --watch ./src/main.ts",
     "debug": "nest start --debug --watch --exec \"bun\"",
     "prod": "bun dist/main.js",
     "test": "bun test",

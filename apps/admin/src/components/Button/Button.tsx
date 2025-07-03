@@ -1,3 +1,5 @@
+import { Spinner } from '@src/components/Spinner';
+import { css } from '@styled-system/css';
 import { type ButtonVariant, button } from '@styled-system/recipes/button';
 import type { ReactNode } from 'react';
 
@@ -7,6 +9,8 @@ type ButtonProps = {
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   className?: string;
+  isLoading?: boolean;
+  loadingText?: string;
 } & ButtonVariant;
 
 export const Button = ({
@@ -14,9 +18,11 @@ export const Button = ({
   onClick,
   type = 'button',
   disabled = false,
+  isLoading = false,
   variant = 'primary',
   size = 'md',
   className,
+  loadingText = '로딩 중...',
   ...props
 }: ButtonProps) => {
   return (
@@ -27,7 +33,20 @@ export const Button = ({
       disabled={disabled}
       {...props}
     >
-      {children}
+      {isLoading ? (
+        <div
+          className={css({
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2',
+          })}
+        >
+          <Spinner size={size} />
+          <span>{loadingText}</span>
+        </div>
+      ) : (
+        children
+      )}
     </button>
   );
 };
