@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+.next
+.nest
+build
+out
+.turbo
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+
+# Environment variables
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# IDE
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+packages/prisma/generated
+
+# clawler
+~
+storage
+playwright/cookie.json

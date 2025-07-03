@@ -55,10 +55,9 @@ export default function Home() {
             size="md"
             variant="primary"
             onClick={handleClick}
-            // 5. react-query의 로딩 상태를 버튼에 직접 연결
             isLoading={isPending}
           >
-            RUN
+            LOGIN
           </Button>
         </div>
       </div>

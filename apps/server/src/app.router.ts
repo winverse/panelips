@@ -1,3 +1,4 @@
+import { LoginRouter } from '@modules/login/index.js';
 import { ScrapRouter } from '@modules/scrap/index.js';
 import { TrpcService } from '@src/trpc/trpc.service.js';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
@@ -9,8 +10,10 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export function createAppRouter(
   trpcService: TrpcService,
   scrapRouter: ScrapRouter,
+  loginRouter: LoginRouter,
 ) {
   return trpcService.router({
     scrap: scrapRouter.router,
+    login: loginRouter.router,
   });
 }

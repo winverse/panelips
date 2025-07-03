@@ -1,18 +1,20 @@
-import { ScrapService } from '@modules/scrap/scrap.service.js';
+import { LoginService } from '@modules/login/login.service.js';
 import { Injectable } from '@nestjs/common';
 import { TrpcService } from '@src/trpc/trpc.service.js';
 import { z } from 'zod';
 
 @Injectable()
-export class ScrapRouter {
+export class LoginRouter {
   constructor(
     private readonly trpcService: TrpcService,
-    private readonly scrapService: ScrapService,
+    private readonly loginService: LoginService,
   ) {}
   get router() {
     return this.trpcService.router({
-      youtubeChannel: this.trpcService.procedure
-        .meta({ description: 'hello' })
+      googleLogin: this.trpcService.procedure
+        .meta({
+          description: 'google login',
+        })
         .input(
           z.object({
             googleEmail: z.string().min(5).max(100).email(),
@@ -21,10 +23,7 @@ export class ScrapRouter {
         )
         .mutation(({ input }) => {
           const { googleEmail, googlePassword } = input;
-          return this.scrapService.youtubeChannelScrap(
-            googleEmail,
-            googlePassword,
-          );
+          return this.loginService.googleLogin(googleEmail, googlePassword);
         }),
     });
   }
