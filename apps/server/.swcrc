@@ -1,0 +1,38 @@
+{
+  "$schema": "https://swc.rs/schema.json",
+  "module": {
+    "type": "nodenext",
+    "resolveFully": true
+  },
+  "jsc": {
+    "target": "es2023",
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "decoratorMetadata": true,
+      "useDefineForClassFields": false
+    },
+    "baseUrl": "./",
+    "paths": {
+      "@providers/*": [
+        "src/providers/*"
+      ],
+      "@constants/*": [
+        "src/commons/constants/*"
+      ],
+      "@filters/*": [
+        "src/commons/filters/*"
+      ],
+      "@interfaces/*": [
+        "src/commons/interfaces/*"
+      ],
+      "@modules/*": [
+        "src/modules/*"
+      ]
+    }
+  },
+  "minify": false
+}

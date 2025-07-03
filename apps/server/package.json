@@ -6,10 +6,22 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "main": "./src/main.ts",
+  "exports": {
+    "./router": {
+      "types": "./src/app.router.ts",
+      "default": "./dist/app.router.js"
+    },
+    "./src/*": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "bunx swc src -d dist --config-file .swcrc",
+    "build:type": "tsc --project tsconfig.build.json",
     "start": "nest start",
-    "dev": "bun run --watch src/main.ts",
+    "dev": "bun ./src/main.ts",
     "debug": "nest start --debug --watch --exec \"bun\"",
     "prod": "bun dist/main.js",
     "test": "bun test",

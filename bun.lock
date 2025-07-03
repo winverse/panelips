@@ -6,6 +6,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.0.6",
         "bun-types": "^1.2.17",
+        "chokidar": "^4.0.3",
         "shx": "^0.4.0",
         "turbo": "^2.5.4",
         "typescript": "^5.5.3",
@@ -15,11 +16,14 @@
       "name": "@apps/admin",
       "version": "0.1.0",
       "dependencies": {
+        "@trpc/client": "^11.4.3",
         "next": "15.3.4",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
       },
       "devDependencies": {
+        "@apps/server": "workspace:* ",
+        "@packages/scripts": "workspace:*",
         "@pandacss/dev": "^0.54.0",
         "@pandacss/types": "^0.54.0",
         "@types/react": "^19",
@@ -27,8 +31,8 @@
         "typescript": "^5",
       },
     },
-    "apps/scraper": {
-      "name": "@apps/scraper",
+    "apps/server": {
+      "name": "@apps/server",
       "version": "0.0.1",
       "dependencies": {
         "@nestjs/common": "^11.1.3",
@@ -101,7 +105,7 @@
 
     "@apps/admin": ["@apps/admin@workspace:apps/admin"],
 
-    "@apps/scraper": ["@apps/scraper@workspace:apps/scraper"],
+    "@apps/server": ["@apps/server@workspace:apps/server"],
 
     "@aws-crypto/sha256-browser": ["@aws-crypto/sha256-browser@5.2.0", "", { "dependencies": { "@aws-crypto/sha256-js": "^5.2.0", "@aws-crypto/supports-web-crypto": "^5.2.0", "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "@aws-sdk/util-locate-window": "^3.0.0", "@smithy/util-utf8": "^2.0.0", "tslib": "^2.6.2" } }, "sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw=="],
 
@@ -604,6 +608,8 @@
     "@tokenizer/inflate": ["@tokenizer/inflate@0.2.7", "", { "dependencies": { "debug": "^4.4.0", "fflate": "^0.8.2", "token-types": "^6.0.0" } }, "sha512-MADQgmZT1eKjp06jpI2yozxaU9uVs4GzzgSL+uEq7bVcJ9V1ZXQkeGNql1fsSI0gMy1vhvNTNbUqrx+pZfJVmg=="],
 
     "@tokenizer/token": ["@tokenizer/token@0.3.0", "", {}, "sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A=="],
+
+    "@trpc/client": ["@trpc/client@11.4.3", "", { "peerDependencies": { "@trpc/server": "11.4.3", "typescript": ">=5.7.2" } }, "sha512-i2suttUCfColktXT8bqex5kHW5jpT15nwUh0hGSDiW1keN621kSUQKcLJ095blqQAUgB+lsmgSqSMmB4L9shQQ=="],
 
     "@trpc/server": ["@trpc/server@11.4.3", "", { "peerDependencies": { "typescript": ">=5.7.2" } }, "sha512-wnWq3wiLlMOlYkaIZz+qbuYA5udPTLS4GVVRyFkr6aT83xpdCHyVtURT+u4hSoIrOXQM9OPCNXSXsAujWZDdaw=="],
 

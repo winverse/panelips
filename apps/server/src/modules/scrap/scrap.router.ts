@@ -11,13 +11,15 @@ export class ScrapRouter {
         .meta({ description: 'hello' })
         .input(
           z.object({
-            hello: z.string(),
+            googleEmail: z.string().min(5).max(100).email(),
+            googlePassword: z.string().min(5).max(100),
           }),
         )
         .output(z.string())
         .query(({ input }) => {
-          console.log('input hello', input.hello);
-          return `hello ${input.hello}`;
+          console.log('input hello', input.googleEmail);
+          console.log('input hello', input.googlePassword);
+          return `hello ${JSON.stringify(input)}`;
         }),
     });
   }
