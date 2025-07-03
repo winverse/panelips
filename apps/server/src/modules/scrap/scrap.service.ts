@@ -79,9 +79,7 @@ export class ScrapService {
         timeout: 20000, // 20초 타임아웃
       });
 
-      await page.goto(
-        'https://notebooklm.google.com/notebook/f06387b5-36aa-4f09-b3e8-38749c99b77b?_gl=1*7n2ioy*_up*MQ..*_ga*MjQ3MzMwNjYuMTc1MTU2NTgyMw..*_ga_W0LDH41ZCB*czE3NTE1NjU4MjMkbzEkZzAkdDE3NTE1NjU4MjMkajYwJGwwJGgw',
-      );
+      await page.goto('https://gemini.google.com/');
     } catch (error) {
       this.logger.error('❌ 구글 로그인 실패:', error);
       throw error;
