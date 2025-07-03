@@ -16,7 +16,7 @@ export class ScrapRouter {
           }),
         )
         .output(z.string())
-        .query(({ input }) => {
+        .mutation(({ input }) => {
           console.log('input hello', input.googleEmail);
           console.log('input hello', input.googlePassword);
           return `hello ${JSON.stringify(input)}`;

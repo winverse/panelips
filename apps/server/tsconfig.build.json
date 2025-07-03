@@ -1,7 +1,15 @@
 {
   "extends": "@packages/tsconfig/nest-config.build.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@providers/*": ["./src/providers/*"],
+      "@filters/*": ["./src/common/filters/*"],
+      "@interfaces/*": ["./src/common/interfaces/*"],
+      "@constants/*": ["./src/common/constants/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@src/*": ["./src/*"]
+    }
   },
   "include": ["./src/*"]
 }

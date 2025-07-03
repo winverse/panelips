@@ -9,17 +9,13 @@
   "main": "./src/main.ts",
   "exports": {
     "./router": {
-      "types": "./src/app.router.ts",
-      "default": "./dist/app.router.js"
-    },
-    "./src/*": {
-      "types": "./src/*.ts",
-      "default": "./dist/*.js"
+      "default": "./dist/app.router.js",
+      "types": "./dist/app.router.d.ts"
     }
   },
   "scripts": {
-    "build": "bunx swc src -d dist --config-file .swcrc",
-    "build:type": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json",
+    "bundle": "bun ./scripts/bundle.ts",
     "start": "nest start",
     "dev": "bun ./src/main.ts",
     "debug": "nest start --debug --watch --exec \"bun\"",
