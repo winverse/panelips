@@ -1,3 +1,5 @@
+import { ConfigService as Service } from '@packages/config';
+
 export type Environment = 'development' | 'production' | 'test';
 
 export type Config = {

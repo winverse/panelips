@@ -7,15 +7,15 @@ const configSchema = z.object({
     port: z.number(),
   }),
   db: z.object({
-    database_provider: z.literal('mongodb', {
+    provider: z.literal('mongodb', {
       errorMap: () => ({ message: 'DB provider must be mongodb' }),
     }),
-    database_url: z
+    url: z
       .string({ required_error: 'Database URL is required' })
       .min(1, { message: 'Database URL cannot be empty' }),
   }),
   google: z.object({
-    googleApiKey: z.string({ required_error: 'Google API key is required' }),
+    apiKey: z.string({ required_error: 'Google API key is required' }),
   }),
 });
 

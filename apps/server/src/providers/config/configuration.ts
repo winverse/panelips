@@ -25,16 +25,17 @@ export const configuration = (): Config => {
     const config: Config = {
       env: environment as Environment,
       app: {
-        port: rawConfig.PORT,
+        port: Number(rawConfig.PORT),
       },
       google: {
         apiKey: rawConfig.GOOGLE_API_KEY,
       },
       db: {
-        provider: rawConfig.DATABASE_PROVIDER,
+        provider: rawConfig.DATABASE_PROVIDER as 'mongodb',
         url: rawConfig.DATABASE_URL,
       },
     };
+
     return validateConfig(config);
   } catch (error) {
     console.error(error);
