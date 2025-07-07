@@ -14,11 +14,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://127.0.0.1:8080',
-    ], // trpc-ui가 제공되는 주소
+    origin: ['http://localhost:3000', 'http://localhost:8080'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

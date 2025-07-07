@@ -1,5 +1,3 @@
-import os from 'node:os';
-import path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
@@ -9,7 +7,7 @@ export class ScrapService {
   private readonly logger = new Logger(ScrapService.name);
 
   public async youtubeChannelScrap(email: string, password: string) {
-    this.logger.log('🚀 Crawlee 기반 스크래핑 작업을 시작합니다...');
+    this.logger.log('🚀 Starting scraping job based on Crawlee...');
 
     const requestQueue = await RequestQueue.open();
     await requestQueue.addRequest({
@@ -43,13 +41,13 @@ export class ScrapService {
       launchContext: {
         launchOptions: {
           channel: 'chrome',
-          headless: false, // 서버 환경이므로 headless: true 권장
+          headless: false, // For server environment, headless: true is recommended
           args: ['--proxy-server=direct://', '--proxy-bypass-list=*'],
         },
       },
 
       requestHandler: async ({ page, request, log }) => {
-        log.info(`[처리 시작] ${request.url}`);
+        log.info(`[Processing started] ${request.url}`);
 
         if (request.label === 'LOGIN') {
           await this.handleGoogleLogin(page, request.userData);
@@ -70,17 +68,17 @@ export class ScrapService {
   private async handleGoogleLogin(page: Page, userData: Dictionary) {
     const { email, password } = userData;
 
-    this.logger.log('🔐 구글 로그인 시작');
+    this.logger.log('🔐 Starting Google login');
     try {
       const isLoggedIn = await this.checkIfLoggedIn(page);
       if (isLoggedIn) {
-        this.logger.log('✅ 이미 로그인된 상태입니다');
+        this.logger.log('✅ Already logged in');
         return;
       }
 
-      this.logger.log('📝 로그인 진행 중...');
+      this.logger.log('📝 Login in progress...');
 
-      // 이메일 입력
+      // Enter email
       await page.waitForSelector('input[type="email"]', { timeout: 10000 });
       await page.fill('input[type="email"]', email);
       await page.click('#identifierNext');
@@ -93,37 +91,36 @@ export class ScrapService {
 
       if (isPasswordVisible) {
         this.logger.log(
-          '🔑 비밀번호 필드가 감지되었습니다. 비밀번호를 입력합니다.',
+          '🔑 Password field detected. Entering password.',
         );
         await page.fill(passwordInputSelector, password);
         await page.click('#passwordNext');
       } else {
         this.logger.log(
-          '🔑 비밀번호 필드가 없습니다. Passkey 수동 확인을 진행해주세요.',
+          '🔑 No password field. Please proceed with manual Passkey verification.',
         );
       }
 
       // passkey
       await page.waitForURL('**/myaccount.google.com/**', {
-        timeout: 20000, // 20초 타임아웃
+        timeout: 20000, // 20 seconds timeout
       });
 
       await page.goto('https://gemini.google.com/');
     } catch (error) {
-      this.logger.error('❌ 구글 로그인 실패:', error);
+      this.logger.error('❌ Google login failed:', error);
       throw error;
     }
   }
 
-  private async checkIfLoggedIn(page: any): Promise<boolean> {
+  private async checkIfLoggedIn(page: Page): Promise<boolean> {
     try {
-      // 여러 로그인 상태 확인 셀렉터
       const loginSelectors = [
         'div[data-email]',
         'a[aria-label*="Google Account"]',
         'img[alt*="profile"]',
         'button[aria-label*="Google apps"]',
-        '[data-ogsr-up]', // Google 계정 메뉴
+        '[data-ogsr-up]',
       ];
 
       for (const selector of loginSelectors) {
@@ -133,35 +130,16 @@ export class ScrapService {
         }
       }
 
-      // URL 기반 확인
+      // URL-based check
       const currentUrl = page.url();
-      console.log(currentUrl);
-      if (
+      return (
         currentUrl.includes('myaccount.google.com') ||
         (currentUrl.includes('accounts.google.com') &&
           !currentUrl.includes('signin'))
-      ) {
-        return true;
-      }
-
-      return false;
+      );
     } catch (error) {
-      this.logger.error('로그인 상태 확인 중 오류:', error);
+      this.logger.error('Error checking login status:', error);
       return false;
     }
-  }
-
-  private getChromeUserDataDir(): string {
-    const platformPaths = {
-      darwin: ['Library', 'Application Support', 'Google', 'Chrome'],
-      win32: ['AppData', 'Local', 'Google', 'Chrome', 'User Data'],
-      linux: ['.config', 'google-chrome'],
-    } as const;
-
-    const pathSegments =
-      platformPaths[process.platform as keyof typeof platformPaths] ||
-      platformPaths.linux;
-
-    return path.join(os.homedir(), ...pathSegments);
   }
 }
