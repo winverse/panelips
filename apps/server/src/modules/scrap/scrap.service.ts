@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@providers/config/index.js';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
 
@@ -7,11 +6,9 @@ import { Page } from 'playwright';
 export class ScrapService {
   private readonly logger = new Logger(ScrapService.name);
 
-  constructor(private readonly configService: ConfigService) {}
   public async youtubeChannelScrap(email: string, password: string) {
     this.logger.log('🚀 Starting scraping job based on Crawlee...');
 
-    console.log('this.', this.configService.get('db.url'));
     const requestQueue = await RequestQueue.open();
     await requestQueue.addRequest({
       url: 'https://accounts.google.com/signin',

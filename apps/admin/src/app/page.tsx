@@ -1,66 +1,12 @@
-'use client';
-
-import { Button } from '@src/components/Button/Button';
-import { Input } from '@src/components/Input';
-import useInputs from '@src/hooks/useInputs'; // 1. useInputs 훅 import
-import { useTRPC } from '@src/lib/trpc';
-import { css } from '@styled-system/css';
+import { GetNewVideo } from '@src/feature/GetNewVideo';
+import { RunScrap } from '@src/feature/RunScrap';
 import { flex } from '@styled-system/patterns';
-import { useMutation } from '@tanstack/react-query';
 
 export default function Home() {
-  const trpc = useTRPC();
-  const [form, onChange] = useInputs({
-    email: '',
-    password: '',
-  });
-
-  const { isPending, mutateAsync } = useMutation(
-    trpc.scrap.youtubeChannel.mutationOptions(),
-  );
-
-  const handleClick = async () => {
-    const result = await mutateAsync({
-      googleEmail: form.email,
-      googlePassword: form.password,
-    });
-
-    console.log(result);
-  };
-
   return (
-    <div className={flex({ p: '0.5rem' })}>
-      <div className={flex({ flexDir: 'column' })}>
-        <Input
-          variant="outline"
-          placeholder="이메일을 입력하세요"
-          size="md"
-          label="email"
-          name="email"
-          value={form.email}
-          onChange={onChange}
-        />
-        <Input
-          variant="outline"
-          placeholder="비밀번호를 입력하세요"
-          size="md"
-          label="password"
-          type="password"
-          name="password"
-          value={form.password}
-          onChange={onChange}
-        />
-        <div className={css({ mt: '0.5rem', ml: 'auto' })}>
-          <Button
-            size="md"
-            variant="primary"
-            onClick={handleClick}
-            isLoading={isPending}
-          >
-            LOGIN
-          </Button>
-        </div>
-      </div>
+    <div className={flex({ p: '0.5rem', gap: '1rem' })}>
+      <GetNewVideo />
+      <RunScrap />
     </div>
   );
 }
