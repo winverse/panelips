@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "db:push": "bun copy:env && bunx prisma db push",
+    "db:push": "bun env:copy && bunx prisma db push",
     "generate:prisma": "bun --env-file=env/.env.development ./scripts/generate-prisma.ts",
     "env:copy": "bun ./scripts/copyEnv.ts -e development",
     "ssm": "bun ./scripts/ssm.ts"
