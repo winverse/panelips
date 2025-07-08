@@ -46,8 +46,8 @@ export class YoutubeService {
       return [];
     }
 
-    const videoIds = searchResponse.data.items
-      ?.filter((item) => item.snippet?.liveBroadcastContent === 'none')
+    const videoIds = items
+      .filter((item) => item.snippet?.liveBroadcastContent === 'none')
       .map((item) => item.id?.videoId)
       .filter((id): id is string => !!id);
 
