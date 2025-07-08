@@ -10,18 +10,16 @@ datasource db {
 }
 
 model YouTubeChannel {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  channelId       String   @unique
-  channelName     String
-  channelUrl      String
-  description     String?
-  thumbnailUrl    String?
-  subscriberCount Int?
-  videoCount      Int?
-  categories      String[]
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  channelId  String @unique
+  title      String
+  url        String
+  urlSlug    String @unique
+  thumbnails Json
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   videos YouTubeVideo[]
 

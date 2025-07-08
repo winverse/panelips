@@ -10,7 +10,7 @@ import { useMutation } from '@tanstack/react-query';
 
 export function GetNewVideo() {
   const trpc = useTRPC();
-  const [channel, setChannel] = useInput('');
+  const [url, setUrl] = useInput('');
 
   const { isPending, mutateAsync } = useMutation(
     trpc.youtube.getNewVideo.mutationOptions(),
@@ -18,7 +18,7 @@ export function GetNewVideo() {
 
   const handleClick = async () => {
     const result = await mutateAsync({
-      channel,
+      url,
     });
 
     console.log(result);
@@ -34,8 +34,8 @@ export function GetNewVideo() {
     >
       <Input
         size="sm"
-        value={channel}
-        onChange={setChannel}
+        value={url}
+        onChange={setUrl}
         variant="outline"
         style={{ width: '200px' }}
       />
