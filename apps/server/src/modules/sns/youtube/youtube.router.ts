@@ -17,7 +17,7 @@ export class YoutubeRouter {
             url: z.string().min(1).max(100).url(),
           }),
         )
-        .output(z.string())
+        .output(z.array(z.string()))
         .mutation(({ input }) => {
           return this.youtubeService.getNewVideos(input.url);
         }),

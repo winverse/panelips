@@ -1,9 +1,12 @@
+import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/time.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { Config } from '@providers/config/index.js';
 import { MongoService } from '@providers/mongo/index.js';
-import { GaxiosResponse } from 'gaxios';
+import { UtilsService } from '@providers/utils/index.js';
+import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
+import { subDays } from 'date-fns';
 
 @Injectable()
 export class YoutubeService {
@@ -13,6 +16,7 @@ export class YoutubeService {
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly mongoService: MongoService,
+    private readonly utilsService: UtilsService,
   ) {
     this.youtubeClient = youtube({
       version: 'v3',
@@ -20,13 +24,60 @@ export class YoutubeService {
     });
   }
 
-  public async getNewVideos(url: string) {
+  public async getNewVideos(url: string): Promise<string[]> {
     const channelId = await this.getChannelId(url);
-    return channelId;
+    this.logger.log(`Searching new videos for channel: ${channelId}`);
+
+    const oneWeekAgo = subDays(new Date(), 7);
+    const publishedAfter = oneWeekAgo.toISOString();
+
+    const searchResponse = await this.youtubeClient.search.list({
+      part: ['id'],
+      channelId: channelId,
+      publishedAfter: publishedAfter,
+      type: ['video'],
+      order: 'date',
+      maxResults: 50,
+    });
+
+    const videoIds = searchResponse.data.items
+      ?.map((item) => item.id?.videoId)
+      .filter((id): id is string => !!id);
+
+    if (!videoIds || videoIds.length === 0) {
+      this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
+      return [];
+    }
+
+    const detailsResponse = await this.youtubeClient.videos.list({
+      part: ['contentDetails', 'id'],
+      id: videoIds,
+      maxResults: 50,
+    });
+
+    const videosWithDetails = detailsResponse.data.items;
+    if (!videosWithDetails) {
+      return [];
+    }
+
+    const maxDurationInSeconds = ONE_HOUR_AS_S + ONE_MINUTE_AS_S * 30;
+    const filteredVideos = videosWithDetails.filter((video) => {
+      const duration = video.contentDetails?.duration;
+      if (!duration) return false; // 길이가 없으면 제외
+      const durationInSeconds = this.utilsService.parseISO8601Duration(duration);
+      return durationInSeconds <= maxDurationInSeconds;
+    });
+
+    const videoUrls = filteredVideos
+      .map((video) => video.id && `https://www.youtube.com/watch?v=${video.id}`)
+      .filter((videoUrl): videoUrl is string => !!videoUrl);
+
+    this.logger.log(`Found ${videoUrls.length} new videos (under 1h 30m) from URL: ${url}`);
+    return videoUrls;
   }
 
   private async getChannelId(url: string): Promise<string> {
-    const exists = await this.mongoService.youTubeChannel.findFirst({
+    const exists = await this.mongoService.youtubeChannel.findFirst({
       where: { url },
     });
 
@@ -35,13 +86,9 @@ export class YoutubeService {
       return exists.channelId;
     }
 
-    const parsedUrl = new URL(url);
-    const searchQuery = parsedUrl.pathname.split('/').filter(Boolean).pop();
-
+    const searchQuery = this.extractSearchQueryFromUrl(url);
     if (!searchQuery) {
-      throw new NotFoundException(
-        `'${url}'에서 검색 키워드를 추출할 수 없습니다.`,
-      );
+      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_EXTRACT_KEYWORD(url));
     }
 
     this.logger.log(`Searching YouTube with query: ${searchQuery}`);
@@ -54,31 +101,40 @@ export class YoutubeService {
 
     const channel = response.data.items?.[0];
     if (!channel?.snippet) {
-      throw new NotFoundException(
-        `'${searchQuery}'에 해당하는 채널을 찾을 수 없습니다.`,
-      );
+      throw new NotFoundException(YOUTUBE_ERROR.CHANNEL_NOT_FOUND(searchQuery));
     }
 
     const { channelId, title, publishedAt, thumbnails } = channel.snippet;
+    const requiredFields = [channelId, title, publishedAt, thumbnails];
 
-    if (!channelId || !title || !publishedAt || !thumbnails) {
-      throw new NotFoundException(
-        'API 응답에서 채널 정보를 가져오지 못했습니다.',
-      );
+    if (!requiredFields.every(Boolean)) {
+      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_GET_CHANNEL_INFO);
     }
 
-    await this.mongoService.youTubeChannel.create({
+    await this.mongoService.youtubeChannel.create({
       data: {
-        channelId,
-        url,
-        title,
-        publishedAt,
+        channelId: channelId!,
+        url: url!,
+        title: title!,
+        publishedAt: publishedAt!,
         urlSlug: searchQuery,
         thumbnails: thumbnails as any,
       },
     });
 
     this.logger.log(`Saved new channel to DB: ${channelId}`);
-    return channelId;
+    return channelId!;
+  }
+
+  private extractSearchQueryFromUrl(urlString: string): string | null {
+    try {
+      const parsedUrl = new URL(urlString);
+      const searchQuery = parsedUrl.pathname.split('/').filter(Boolean).pop();
+      return searchQuery || null;
+    } catch (error) {
+      console.error(error);
+      this.logger.warn(YOUTUBE_ERROR.WRONG_URL(urlString));
+      return null;
+    }
   }
 }

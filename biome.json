@@ -15,7 +15,8 @@
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
         "noUselessElse": "error",
-        "useImportType":"off"
+        "useImportType": "off",
+        "noNonNullAssertion": "off"
       }
     }
   },
@@ -23,7 +24,7 @@
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 80,
+    "lineWidth": 100,
     "formatWithErrors": true
   },
   "javascript": {

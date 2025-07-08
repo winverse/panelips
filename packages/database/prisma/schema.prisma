@@ -9,7 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model YouTubeChannel {
+model YoutubeChannel {
   id         String @id @default(auto()) @map("_id") @db.ObjectId
   channelId  String @unique
   title      String
@@ -21,12 +21,12 @@ model YouTubeChannel {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  videos YouTubeVideo[]
+  videos YoutubeVideo[]
 
   @@map("youtube_channels")
 }
 
-model YouTubeVideo {
+model YoutubeVideo {
   id                String          @id @default(auto()) @map("_id") @db.ObjectId
   videoId           String          @unique
   title             String
@@ -44,7 +44,7 @@ model YouTubeVideo {
   insights    Insight[]
 
   channelId String         @db.ObjectId
-  channel   YouTubeChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel   YoutubeChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@map("youtube_videos")
 }
@@ -73,7 +73,7 @@ model Appearances {
   panelId String       @db.ObjectId
   panel   Panel        @relation(fields: [panelId], references: [id], onDelete: Cascade)
   videoId String       @db.ObjectId
-  video   YouTubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video   YoutubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -93,7 +93,7 @@ model Insight {
   panel   Panel  @relation(fields: [panelId], references: [id], onDelete: Cascade)
   panelId String @db.ObjectId
 
-  video   YouTubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video   YoutubeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
   videoId String       @db.ObjectId
 
   evaluations InsightEvaluation[]
