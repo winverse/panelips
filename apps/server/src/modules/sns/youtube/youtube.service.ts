@@ -41,7 +41,7 @@ export class YoutubeService {
     });
 
     const items = searchResponse.data.items;
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
       return [];
     }
@@ -51,7 +51,7 @@ export class YoutubeService {
       .map((item) => item.id?.videoId)
       .filter((id): id is string => !!id);
 
-    if (!videoIds || videoIds.length === 0) {
+    if (!Array.isArray(videoIds) || videoIds.length === 0) {
       this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
       return [];
     }
@@ -63,7 +63,7 @@ export class YoutubeService {
     });
 
     const videosWithDetails = detailsResponse.data.items;
-    if (!videosWithDetails) {
+    if (!Array.isArray(videosWithDetails) || videosWithDetails.length === 0) {
       return [];
     }
 
