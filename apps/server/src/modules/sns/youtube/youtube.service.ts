@@ -1,4 +1,4 @@
-import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/time.js';
+import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
