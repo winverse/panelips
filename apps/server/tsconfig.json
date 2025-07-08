@@ -11,7 +11,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "paths": {
-      "@providers/*": ["./src/providers/*"],
+      "@core/*": ["./src/core/*"],
       "@filters/*": ["./src/common/filters/*"],
       "@interfaces/*": ["./src/common/interfaces/*"],
       "@constants/*": ["./src/common/constants/*"],

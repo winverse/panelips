@@ -6,10 +6,9 @@ import { YoutubeRouter } from '@modules/sns/youtube/youtube.router.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ConfigModule } from '@packages/config';
-import { configuration } from '@providers/config/index.js';
-import { MongoModule } from '@providers/mongo/index.js';
-import { UtilsModule } from '@providers/utils/index.js';
 import { createAppRouter } from '@src/app.router.js';
+import { CoreModule } from '@src/core/core.module';
+import { configuration } from '@src/core/config/index.js';
 import { TrpcRouter } from '@src/trpc/trpc.router.js';
 import { TrpcService } from '@src/trpc/trpc.service.js';
 import { TrpcModule } from './trpc/trpc.module.js';
@@ -18,14 +17,14 @@ import { TrpcModule } from './trpc/trpc.module.js';
   imports: [
     NestConfigModule.forRoot({
       load: [configuration],
+      isGlobal: true,
     }),
     ConfigModule,
-    MongoModule,
+    CoreModule,
     TrpcModule,
     ScrapModule,
     LoginModule,
     YoutubeModule,
-    UtilsModule,
   ],
   providers: [
     TrpcRouter,

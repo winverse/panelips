@@ -1,12 +1,12 @@
 import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/index.js';
+import { Config } from '@core/config/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
-import { Config } from '@providers/config/index.js';
-import { MongoService } from '@providers/mongo/index.js';
-import { UtilsService } from '@providers/utils/index.js';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
+import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
 import { subDays } from 'date-fns';
+import { YoutubeRepository } from './youtube.repository';
 
 @Injectable()
 export class YoutubeService {
@@ -15,8 +15,7 @@ export class YoutubeService {
 
   constructor(
     private readonly configService: ConfigService<Config>,
-    private readonly mongoService: MongoService,
-    private readonly utilsService: UtilsService,
+    private readonly youtubeRepository: YoutubeRepository,
   ) {
     this.youtubeClient = youtube({
       version: 'v3',
@@ -71,23 +70,11 @@ export class YoutubeService {
     const filteredVideos = videosWithDetails.filter((video) => {
       const duration = video.contentDetails?.duration;
       if (!duration) return false; // 길이가 없으면 제외
-      const durationInSeconds = this.utilsService.parseISO8601Duration(duration);
+      const durationInSeconds = parseISO8601Duration(duration);
       return durationInSeconds <= maxDurationInSeconds;
     });
 
-    const existVideos = await this.mongoService.youtubeVideo.findMany({
-      where: {
-        channel: {
-          channelId,
-        },
-        publishedAt: {
-          gte: oneWeekAgo,
-        },
-      },
-      select: {
-        url: true,
-      },
-    });
+    const existVideos = await this.youtubeRepository.findVideos(channelId, oneWeekAgo);
 
     const processedURL = existVideos.map((video) => video.url);
     const videoUrls = filteredVideos
@@ -100,9 +87,7 @@ export class YoutubeService {
   }
 
   private async getChannelId(url: string): Promise<string> {
-    const exists = await this.mongoService.youtubeChannel.findFirst({
-      where: { url },
-    });
+    const exists = await this.youtubeRepository.findChannelByUrl(url);
 
     if (exists) {
       this.logger.log(`Found channel in DB: ${exists.channelId}`);
@@ -134,19 +119,17 @@ export class YoutubeService {
       throw new NotFoundException(YOUTUBE_ERROR.CANNOT_GET_CHANNEL_INFO);
     }
 
-    await this.mongoService.youtubeChannel.create({
-      data: {
-        channelId: channelId!,
-        url: url!,
-        title: title!,
-        publishedAt: publishedAt!,
-        urlSlug: searchQuery,
-        thumbnails: thumbnails as any,
-      },
+    const newChannel = await this.youtubeRepository.createChannel({
+      channelId: channelId!,
+      url: url!,
+      title: title!,
+      publishedAt: publishedAt!,
+      urlSlug: searchQuery,
+      thumbnails: thumbnails as any,
     });
 
-    this.logger.log(`Saved new channel to DB: ${channelId}`);
-    return channelId!;
+    this.logger.log(`Saved new channel to DB: ${newChannel.channelId}`);
+    return newChannel.channelId;
   }
 
   private extractSearchQueryFromUrl(urlString: string): string | null {
