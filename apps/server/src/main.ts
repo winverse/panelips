@@ -1,8 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  type NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
@@ -31,9 +28,7 @@ async function bootstrap() {
 
 bootstrap()
   .then(({ port }) => {
-    console.log(
-      `Application started successfully. Address: http://localhost:${port}`,
-    );
+    console.log(`Application started successfully. Address: http://localhost:${port}`);
   })
   .catch((error) => {
     console.error('Failed to start application:', error);

@@ -21,10 +21,7 @@ export class ScrapRouter {
         )
         .mutation(({ input }) => {
           const { googleEmail, googlePassword } = input;
-          return this.scrapService.youtubeChannelScrap(
-            googleEmail,
-            googlePassword,
-          );
+          return this.scrapService.youtubeChannelScrap(googleEmail, googlePassword);
         }),
     });
   }

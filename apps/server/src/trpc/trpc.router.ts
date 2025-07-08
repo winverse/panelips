@@ -2,10 +2,7 @@ import { APP_ROUTER } from '@constants/token.js';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { AnyRouter } from '@trpc/server';
-import {
-  type FastifyTRPCPluginOptions,
-  fastifyTRPCPlugin,
-} from '@trpc/server/adapters/fastify';
+import { type FastifyTRPCPluginOptions, fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
 import { TrpcService } from './trpc.service.js';
 
@@ -18,8 +15,7 @@ export class TrpcRouter implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const fastifyInstance =
-      this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
+    const fastifyInstance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
     await this.register(fastifyInstance);
     await this.registerUI(fastifyInstance);
   }
@@ -31,13 +27,9 @@ export class TrpcRouter implements OnModuleInit {
         router: this.appRouter,
         createContext: (opts) => this.trpcService.createContext(opts),
         onError({ path, error }) {
-          console.error(
-            `Error in tRPC handler on path '${path}': ${error.code} ${error.cause}`,
-          );
+          console.error(`Error in tRPC handler on path '${path}': ${error.code} ${error.cause}`);
         },
-      } satisfies FastifyTRPCPluginOptions<
-        typeof this.appRouter
-      >['trpcOptions'],
+      } satisfies FastifyTRPCPluginOptions<typeof this.appRouter>['trpcOptions'],
     });
     console.log('✅ tRPC router registered successfully on /trpc');
   }

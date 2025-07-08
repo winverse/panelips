@@ -34,3 +34,6 @@ Thumbs.db
 
 # Prisma
 packages/prisma/generated
+
+# GEMINI
+GEMINI.md

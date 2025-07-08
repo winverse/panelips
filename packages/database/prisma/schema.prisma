@@ -27,15 +27,17 @@ model YoutubeChannel {
 }
 
 model YoutubeVideo {
-  id                String          @id @default(auto()) @map("_id") @db.ObjectId
-  videoId           String          @unique
-  url               String          @unique
-  title             String
-  rawScript         String?
-  structuredSummary Json? // { }
-  isProcessed       Boolean         @default(false)
-  aiProcessStatus   AiProcessStatus @default(PENDING)
-  aiProcessError    String?
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId       String   @unique
+  url           String   @unique
+  title         String
+  mainPoints    String[]
+  summary       String
+  relatedStocks Json?
+
+  isProcessed     Boolean         @default(false)
+  aiProcessStatus AiProcessStatus @default(PENDING)
+  aiProcessError  String?
 
   publishedAt DateTime
   createdAt   DateTime @default(now())
@@ -55,7 +57,8 @@ model Panel {
   name               String
   expertise          String[]
   profileImageUrl    String?
-  jobPosition        String?
+  company            String?
+  position           String
   accuracyScore      Float    @default(0) // 예측 정확도 점수
   totalPredictions   Int      @default(0) // 총 예측 횟수
   correctPredictions Int      @default(0) // 맞은 예측 횟수
@@ -85,11 +88,11 @@ model Appearances {
 
 // 인사이트/예측 정보
 model Insight {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId // MongoDB 고유 ID
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId // MongoDB 고유 ID
   statement        String
   context          String? // 해당 주장이 나온 문맥 (스크립트 일부) (선택 사항)
   timestampInVideo String? // 비디오 내 발언 시점 (예: "01:23:45") (선택 사항)
-  topics           String[] // 관련 주제 태그 (예: ["미래산업", "에너지", "지정학"])
+  relatedStocks    Json? // 관련 주식 정보 (예: [{ listedExchange: "kospi", company: "삼성전자" }])
 
   panel   Panel  @relation(fields: [panelId], references: [id], onDelete: Cascade)
   panelId String @db.ObjectId

@@ -15,13 +15,7 @@ export class LoginService {
 
     try {
       const homeDir = os.homedir();
-      const chromePath = path.join(
-        homeDir,
-        'Library',
-        'Application Support',
-        'Google',
-        'Chrome',
-      );
+      const chromePath = path.join(homeDir, 'Library', 'Application Support', 'Google', 'Chrome');
 
       const context = await chromium.launchPersistentContext(chromePath, {
         headless: false,
@@ -33,9 +27,7 @@ export class LoginService {
 
       await page.goto('https://youtube.com');
       console.log('✅ PC에 설치된 크롬 브라우저가 열렸습니다.');
-      console.log(
-        '로그인 상태를 확인하고, 15초 뒤에 쿠키를 저장하고 종료합니다.',
-      );
+      console.log('로그인 상태를 확인하고, 15초 뒤에 쿠키를 저장하고 종료합니다.');
       console.log('(만약 로그인이 풀려있다면 지금 직접 로그인해주세요.)');
 
       await page.waitForTimeout(150000);

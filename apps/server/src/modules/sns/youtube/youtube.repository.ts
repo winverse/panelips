@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { MongoService } from '@src/core/database/mongo/mongo.service';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@packages/database/mongo';
+import { MongoService } from '@src/core/database/mongo/mongo.service.js';
 
 @Injectable()
 export class YoutubeRepository {
   constructor(private readonly mongo: MongoService) {}
 
-  findChannelByUrl(url: string) {
-    return this.mongo.youTubeChannel.findFirst({ where: { url } });
+  async findChannelByUrl(url: string) {
+    return this.mongo.youtubeChannel.findFirst({ where: { url } });
   }
 
-  createChannel(data: Prisma.YouTubeChannelCreateInput) {
-    return this.mongo.youTubeChannel.create({ data });
+  async createChannel(data: Prisma.YoutubeChannelCreateInput) {
+    return this.mongo.youtubeChannel.create({ data });
   }
 
   findVideos(channelId: string, publishedAfter: Date) {

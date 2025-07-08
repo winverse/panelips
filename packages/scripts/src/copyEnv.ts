@@ -14,10 +14,7 @@ export class CopyEnvScript {
   }
 
   private getEnvSourcePath(environment: Environment): string {
-    return path.resolve(
-      process.cwd(),
-      `${this.envFolderPath}/.env.${environment}`,
-    );
+    return path.resolve(process.cwd(), `${this.envFolderPath}/.env.${environment}`);
   }
 
   private getEnvTargetPath(): string {
@@ -25,12 +22,7 @@ export class CopyEnvScript {
   }
 
   private validateEnvironment(environment: string): void {
-    const validEnvironments: Environment[] = [
-      'development',
-      'stage',
-      'production',
-      'test',
-    ];
+    const validEnvironments: Environment[] = ['development', 'stage', 'production', 'test'];
 
     if (!validEnvironments.includes(environment as Environment)) {
       throw new Error(`${environment} is not allowed environment`);
@@ -64,14 +56,10 @@ export class CopyEnvScript {
 
     try {
       fs.copyFileSync(sourcePath, targetPath);
-      console.info(
-        `✅ Environment file copied successfully: .env.${environment} → .env`,
-      );
+      console.info(`✅ Environment file copied successfully: .env.${environment} → .env`);
     } catch (error) {
       throw new Error(
-        `Failed to copy environment file: ${
-          error instanceof Error ? error.message : error
-        }`,
+        `Failed to copy environment file: ${error instanceof Error ? error.message : error}`,
       );
     }
   }
@@ -97,8 +85,7 @@ export class CopyEnvScript {
 
   public async execute(): Promise<void> {
     try {
-      const environment =
-        this.environment || (await this.promptForEnvironment());
+      const environment = this.environment || (await this.promptForEnvironment());
 
       this.validateEnvironment(environment);
       this.printSelectedLog(environment);

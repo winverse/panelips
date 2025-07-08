@@ -1,18 +1,10 @@
-import {
-  HttpException,
-  Injectable,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Config } from '@core/config/index.js';
+import { HttpException, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { PrismaClient } from '@packages/database/mongo';
-import { Config } from '@providers/config/index.js';
 
 @Injectable()
-export class MongoService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class MongoService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly dbUrl: string;
 
   constructor(config: ConfigService<Config>) {

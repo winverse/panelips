@@ -1,10 +1,6 @@
 import { type ChangeEvent, useCallback, useState } from 'react';
 
-type UseInputReturnType = [
-  string,
-  (e: ChangeEvent<HTMLInputElement>) => void,
-  () => void,
-];
+type UseInputReturnType = [string, (e: ChangeEvent<HTMLInputElement>) => void, () => void];
 
 function useInput(initialValue: string): UseInputReturnType {
   const [value, setValue] = useState(initialValue);

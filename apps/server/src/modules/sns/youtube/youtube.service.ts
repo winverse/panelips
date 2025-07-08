@@ -6,7 +6,7 @@ import { ConfigService } from '@packages/config';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
 import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
 import { subDays } from 'date-fns';
-import { YoutubeRepository } from './youtube.repository';
+import { YoutubeRepository } from './youtube.repository.js';
 
 @Injectable()
 export class YoutubeService {

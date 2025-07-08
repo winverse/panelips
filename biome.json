@@ -54,10 +54,12 @@
       "!**/dist/**",
       "!**/.turbo/**",
       "!**/.next/**",
+      "!**/.nest/**",
       "!**/coverage/**",
       "!**/*.d.ts",
       "!**/styled-system/**",
-      "!**/panda.config.ts"
+      "!**/panda.config.ts",
+      "!**/generated/**"
     ]
   }
 }

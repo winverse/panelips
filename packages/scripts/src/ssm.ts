@@ -41,10 +41,7 @@ export class SSMScript {
   }
 
   private getEnvFilePath(): string {
-    return path.resolve(
-      process.cwd(),
-      `${this.envFolderPath}/.env.${this.environment}`,
-    );
+    return path.resolve(process.cwd(), `${this.envFolderPath}/.env.${this.environment}`);
   }
 
   private readEnvFile(): string {
@@ -78,12 +75,7 @@ export class SSMScript {
 
   private validateInputs(command: string, environment: string): void {
     const validCommands: OperationType[] = ['push', 'pull'];
-    const validEnvironments: Environment[] = [
-      'development',
-      'stage',
-      'production',
-      'test',
-    ];
+    const validEnvironments: Environment[] = ['development', 'stage', 'production', 'test'];
 
     if (!validCommands.includes(command as OperationType)) {
       throw new Error(`${command} is not allowed operation type`);
@@ -132,10 +124,7 @@ export class SSMScript {
     };
   }
 
-  private printSelectedLog(
-    command: OperationType,
-    environment: Environment,
-  ): void {
+  private printSelectedLog(command: OperationType, environment: Environment): void {
     console.info('Selected Options:');
     console.info(`command: ${command}`);
     console.info(`environment: ${environment}`);
@@ -206,9 +195,7 @@ export class SSMScript {
 
   private parseParameterValue(value: string | undefined): string {
     if (!value) {
-      throw new Error(
-        'The path parameter exists, but retrieving the value failed',
-      );
+      throw new Error('The path parameter exists, but retrieving the value failed');
     }
 
     try {
@@ -224,27 +211,19 @@ export class SSMScript {
     try {
       console.info('Pushing parameter to SSM...');
       const envContent = this.readEnvFile();
-      const response = await this.uploadParameterToSSM(
-        parameterName,
-        envContent,
-      );
+      const response = await this.uploadParameterToSSM(parameterName, envContent);
 
       console.info(
         `✅ Parameter upload successful! path: ${parameterName}, version: ${response.Version}`,
       );
     } catch (error) {
       throw new Error(
-        `Failed to push parameter: ${
-          error instanceof Error ? error.message : error
-        }`,
+        `Failed to push parameter: ${error instanceof Error ? error.message : error}`,
       );
     }
   }
 
-  private async uploadParameterToSSM(
-    parameterName: string,
-    envContent: string,
-  ) {
+  private async uploadParameterToSSM(parameterName: string, envContent: string) {
     const input: PutParameterCommandInput = {
       Name: parameterName,
       Value: JSON.stringify(envContent),
@@ -274,9 +253,7 @@ export class SSMScript {
       version = Number(versionStr);
 
       if (Number.isNaN(version) || version < 0) {
-        throw new Error(
-          'Invalid version format. The version must be a numeric value',
-        );
+        throw new Error('Invalid version format. The version must be a numeric value');
       }
     }
 

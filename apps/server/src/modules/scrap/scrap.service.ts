@@ -94,9 +94,7 @@ export class ScrapService {
         await page.fill(passwordInputSelector, password);
         await page.click('#passwordNext');
       } else {
-        this.logger.log(
-          '🔑 No password field. Please proceed with manual Passkey verification.',
-        );
+        this.logger.log('🔑 No password field. Please proceed with manual Passkey verification.');
       }
 
       // passkey
@@ -132,8 +130,7 @@ export class ScrapService {
       const currentUrl = page.url();
       return (
         currentUrl.includes('myaccount.google.com') ||
-        (currentUrl.includes('accounts.google.com') &&
-          !currentUrl.includes('signin'))
+        (currentUrl.includes('accounts.google.com') && !currentUrl.includes('signin'))
       );
     } catch (error) {
       this.logger.error('Error checking login status:', error);

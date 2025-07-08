@@ -15,9 +15,7 @@ export function RunScrap() {
     password: '',
   });
 
-  const { isPending, mutateAsync } = useMutation(
-    trpc.scrap.youtubeChannel.mutationOptions(),
-  );
+  const { isPending, mutateAsync } = useMutation(trpc.scrap.youtubeChannel.mutationOptions());
 
   const handleClick = async () => {
     const result = await mutateAsync({
@@ -48,12 +46,7 @@ export function RunScrap() {
         onChange={onChange}
       />
       <div className={css({ mt: '0.5rem', ml: 'auto' })}>
-        <Button
-          size="md"
-          variant="primary"
-          onClick={handleClick}
-          isLoading={isPending}
-        >
+        <Button size="md" variant="primary" onClick={handleClick} isLoading={isPending}>
           LOGIN
         </Button>
       </div>

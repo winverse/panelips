@@ -12,9 +12,7 @@ export function GetNewVideo() {
   const trpc = useTRPC();
   const [url, setUrl] = useInput('');
 
-  const { isPending, mutateAsync } = useMutation(
-    trpc.youtube.getNewVideo.mutationOptions(),
-  );
+  const { isPending, mutateAsync } = useMutation(trpc.youtube.getNewVideo.mutationOptions());
 
   const handleClick = async () => {
     const result = await mutateAsync({
@@ -32,19 +30,8 @@ export function GetNewVideo() {
         gap: '0.5rem',
       })}
     >
-      <Input
-        size="sm"
-        value={url}
-        onChange={setUrl}
-        variant="outline"
-        style={{ width: '200px' }}
-      />
-      <Button
-        size="sm"
-        variant="primary"
-        isLoading={isPending}
-        onClick={handleClick}
-      >
+      <Input size="sm" value={url} onChange={setUrl} variant="outline" style={{ width: '200px' }} />
+      <Button size="sm" variant="primary" isLoading={isPending} onClick={handleClick}>
         동기화
       </Button>
     </div>

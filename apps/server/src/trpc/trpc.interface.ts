@@ -1,8 +1,4 @@
-import type {
-  TRPCDefaultErrorShape,
-  TRPCErrorFormatter,
-  TRPCRootObject,
-} from '@trpc/server';
+import type { TRPCDefaultErrorShape, TRPCErrorFormatter, TRPCRootObject } from '@trpc/server';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type superjson from 'superjson';
 

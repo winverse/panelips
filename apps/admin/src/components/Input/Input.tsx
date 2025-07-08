@@ -14,23 +14,10 @@ type InputProps = {
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  (
-    {
-      label,
-      error,
-      helperText,
-      variant = 'outline',
-      size = 'md',
-      id,
-      ...props
-    },
-    ref,
-  ) => {
+  ({ label, error, helperText, variant = 'outline', size = 'md', id, ...props }, ref) => {
     const inputId = useId();
     return (
-      <div
-        className={css({ display: 'flex', flexDirection: 'column', gap: 0.5 })}
-      >
+      <div className={css({ display: 'flex', flexDirection: 'column', gap: 0.5 })}>
         {label && (
           <label
             htmlFor={inputId}
