@@ -32,7 +32,7 @@ export class YoutubeService {
     const publishedAfter = oneWeekAgo.toISOString();
 
     const searchResponse = await this.youtubeClient.search.list({
-      part: ['id'],
+      part: ['id', 'snippet'],
       channelId: channelId,
       publishedAfter: publishedAfter,
       type: ['video'],
@@ -40,8 +40,15 @@ export class YoutubeService {
       maxResults: 50,
     });
 
+    const items = searchResponse.data.items;
+    if (!items || items.length === 0) {
+      this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
+      return [];
+    }
+
     const videoIds = searchResponse.data.items
-      ?.map((item) => item.id?.videoId)
+      ?.filter((item) => item.snippet?.liveBroadcastContent === 'none')
+      .map((item) => item.id?.videoId)
       .filter((id): id is string => !!id);
 
     if (!videoIds || videoIds.length === 0) {
@@ -68,9 +75,25 @@ export class YoutubeService {
       return durationInSeconds <= maxDurationInSeconds;
     });
 
+    const existVideos = await this.mongoService.youtubeVideo.findMany({
+      where: {
+        channel: {
+          channelId,
+        },
+        publishedAt: {
+          gte: oneWeekAgo,
+        },
+      },
+      select: {
+        url: true,
+      },
+    });
+
+    const processedURL = existVideos.map((video) => video.url);
     const videoUrls = filteredVideos
       .map((video) => video.id && `https://www.youtube.com/watch?v=${video.id}`)
-      .filter((videoUrl): videoUrl is string => !!videoUrl);
+      .filter((videoUrl): videoUrl is string => !!videoUrl)
+      .filter((videoUrl) => !processedURL.includes(videoUrl));
 
     this.logger.log(`Found ${videoUrls.length} new videos (under 1h 30m) from URL: ${url}`);
     return videoUrls;

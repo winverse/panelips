@@ -29,6 +29,7 @@ model YoutubeChannel {
 model YoutubeVideo {
   id                String          @id @default(auto()) @map("_id") @db.ObjectId
   videoId           String          @unique
+  url               String          @unique
   title             String
   rawScript         String?
   structuredSummary Json? // { }
@@ -43,8 +44,8 @@ model YoutubeVideo {
   appearances Appearances[]
   insights    Insight[]
 
-  channelId String         @db.ObjectId
-  channel   YoutubeChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  youtubeChannelId String         @db.ObjectId
+  channel          YoutubeChannel @relation(fields: [youtubeChannelId], references: [id], onDelete: Cascade)
 
   @@map("youtube_videos")
 }
