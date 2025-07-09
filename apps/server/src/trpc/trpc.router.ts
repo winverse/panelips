@@ -1,20 +1,25 @@
-import { APP_ROUTER } from '@constants/token.js';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { INestApplication, Injectable } from '@nestjs/common'; // Keep INestApplication import
 import { HttpAdapterHost } from '@nestjs/core';
 import type { AnyRouter } from '@trpc/server';
 import { type FastifyTRPCPluginOptions, fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
+import { createAppRouter } from '../app.router.js';
 import { TrpcService } from './trpc.service.js';
 
 @Injectable()
-export class TrpcRouter implements OnModuleInit {
+export class TrpcRouter {
+  // Removed implements OnModuleInit
+  private appRouter: AnyRouter; // Store the appRouter here
+
   constructor(
     private readonly adapterHost: HttpAdapterHost,
     private readonly trpcService: TrpcService,
-    @Inject(APP_ROUTER) private readonly appRouter: AnyRouter,
   ) {}
 
-  async onModuleInit() {
+  // New method to apply middleware and create router
+  async applyMiddleware(app: INestApplication) {
+    this.appRouter = createAppRouter(app, this.trpcService); // Create the appRouter here
+
     const fastifyInstance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
     await this.register(fastifyInstance);
     await this.registerUI(fastifyInstance);

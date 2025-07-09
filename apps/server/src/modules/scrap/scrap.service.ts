@@ -17,7 +17,6 @@ export class ScrapService {
       retryCount: 1,
       maxRetries: 1,
     });
-
     const crawler = new PlaywrightCrawler({
       requestQueue,
       maxRequestRetries: 2,

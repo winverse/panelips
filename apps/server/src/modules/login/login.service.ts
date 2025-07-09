@@ -1,45 +1,142 @@
-import fs from 'node:fs';
-import os from 'node:os';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
-import { Browser, chromium, firefox, Page } from 'playwright';
+import { Browser, BrowserContext, chromium, Page } from 'playwright';
 
 @Injectable()
 export class LoginService {
   private readonly logger = new Logger(LoginService.name);
+  private browser: Browser | null = null;
+  private context: BrowserContext | null = null;
+  private page: Page | null = null;
+  private readonly COOKIE_PATH = path.resolve(process.cwd(), 'playwright', 'cookie.json');
 
-  public async googleLogin(email: string, password: string): Promise<void> {
-    const filePath = path.resolve(process.cwd(), './playwright/cookie.json');
+  async onModuleInit() {
+    // Ensure the playwright directory exists
+    const playwrightDir = path.dirname(this.COOKIE_PATH);
+    await fs
+      .mkdir(playwrightDir, { recursive: true })
+      .catch((e) => this.logger.error(`Failed to create playwright directory: ${e.message}`));
+  }
 
-    this.logger.log('Google 로그인 시작');
+  async googleLogin(email: string, password: string): Promise<boolean> {
+    this.logger.log('🔐 Attempting Google login...');
 
     try {
-      const homeDir = os.homedir();
-      const chromePath = path.join(homeDir, 'Library', 'Application Support', 'Google', 'Chrome');
+      // Launch browser if not already launched
+      if (!this.browser) {
+        this.browser = await chromium.launch({
+          headless: true, // Set to false for debugging UI
+          channel: 'chrome',
+          args: ['--proxy-server=direct://', '--proxy-bypass-list=*'],
+        });
+      }
 
-      const context = await chromium.launchPersistentContext(chromePath, {
-        headless: false,
-        channel: 'chrome',
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
+      // Create context with existing cookies if available
+      let storageState;
+      try {
+        storageState = await fs.readFile(this.COOKIE_PATH, 'utf8');
+        this.context = await this.browser.newContext({ storageState: JSON.parse(storageState) });
+        this.logger.log('Loaded existing cookie.json');
+      } catch (error) {
+        this.logger.warn(
+          'No existing cookie.json found or failed to load. Starting fresh session.',
+        );
+        this.context = await this.browser.newContext();
+      }
 
-      const page = await context.newPage();
+      this.page = await this.context.newPage();
 
-      await page.goto('https://youtube.com');
-      console.log('✅ PC에 설치된 크롬 브라우저가 열렸습니다.');
-      console.log('로그인 상태를 확인하고, 15초 뒤에 쿠키를 저장하고 종료합니다.');
-      console.log('(만약 로그인이 풀려있다면 지금 직접 로그인해주세요.)');
+      // Check if already logged in
+      await this.page.goto('https://accounts.google.com');
+      const isLoggedIn = await this.checkIfLoggedIn(this.page);
+      if (isLoggedIn) {
+        this.logger.log('✅ Already logged in to Google.');
+        await this.saveSession();
+        return true;
+      }
 
-      await page.waitForTimeout(150000);
+      this.logger.log('📝 Proceeding with Google login flow...');
+      await this.page.goto('https://accounts.google.com/signin');
 
-      const cookies = await context.cookies();
+      // Enter email
+      await this.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+      await this.page.fill('input[type="email"]', email);
+      await this.page.click('#identifierNext');
 
-      fs.writeFileSync(filePath, JSON.stringify(cookies, null, 2));
+      // Enter password
+      const passwordInputSelector = 'input[type="password"][name="Passwd"]';
+      try {
+        await this.page.waitForSelector(passwordInputSelector, { timeout: 5000 });
+        await this.page.fill(passwordInputSelector, password);
+        await this.page.click('#passwordNext');
+      } catch (e) {
+        this.logger.warn(
+          'Password field not found or timed out. May require manual intervention or passkey.',
+        );
+        // If password field is not found, it might be a passkey prompt or other security step.
+        // We'll wait for a common post-login URL or a timeout.
+      }
+
+      // Wait for navigation to a logged-in state or a common Google page
+      await this.page
+        .waitForURL('**/myaccount.google.com/**', { timeout: 20000 })
+        .catch(async () => {
+          this.logger.warn('Did not navigate to myaccount.google.com. Checking current URL.');
+          // If not redirected, check if we are on a page that indicates successful login
+          if (this.page && this.page.url().includes('accounts.google.com/signin/v2/challenge')) {
+            this.logger.error(
+              'Google login requires further challenge (e.g., 2FA, passkey). Manual intervention needed.',
+            );
+            throw new Error('Google login requires further challenge.');
+          }
+        });
+
+      const finalCheckLoggedIn = await this.checkIfLoggedIn(this.page);
+      if (finalCheckLoggedIn) {
+        this.logger.log('✅ Successfully logged in to Google.');
+        await this.saveSession();
+        return true;
+      }
+      this.logger.error('❌ Google login failed: Not logged in after flow completion.');
+      return false;
     } catch (error) {
-      this.logger.error('google login error: ', error);
-      throw new Error(`구글 로그인 실패 ${error.message}`);
+      this.logger.error(`❌ Google login failed: ${error.message}`, error.stack);
+      return false;
+    } finally {
+      // Close the browser context and browser after operation
+      if (this.page) {
+        await this.page.close();
+        this.page = null;
+      }
+      if (this.context) {
+        await this.context.close();
+        this.context = null;
+      }
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+      }
     }
+  }
 
-    this.logger.log('Google 로그인 완료');
+  private async checkIfLoggedIn(page: Page): Promise<boolean> {
+    try {
+      // Navigate to a known Google page that requires login to check status
+      await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded' });
+      const currentUrl = page.url();
+      return currentUrl.includes('myaccount.google.com') && !currentUrl.includes('signin');
+    } catch (error) {
+      this.logger.error('Error checking login status:', error);
+      return false;
+    }
+  }
+
+  private async saveSession() {
+    if (this.context) {
+      const storageState = await this.context.storageState();
+      await fs.writeFile(this.COOKIE_PATH, JSON.stringify(storageState), 'utf8');
+      this.logger.log(`🍪 Session saved to ${this.COOKIE_PATH}`);
+    }
   }
 }

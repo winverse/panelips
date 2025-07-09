@@ -1,6 +1,6 @@
 import { css } from '@styled-system/css';
 
-export interface SpinnerProps {
+interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
   className?: string;

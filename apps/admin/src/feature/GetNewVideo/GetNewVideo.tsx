@@ -4,7 +4,6 @@ import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
 import useInput from '@src/hooks/useInput';
 import { useTRPC } from '@src/lib/trpc';
-import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useMutation } from '@tanstack/react-query';
 
