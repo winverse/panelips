@@ -1,13 +1,12 @@
 // apps/admin/src/feature/Dashboard/index.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { css } from '@styled-system/css';
-import { flex } from '@styled-system/patterns';
 import { DashboardLayout } from '@src/components/DashboardLayout';
 import { ChannelManager } from '@src/feature/ChannelManager';
-import { NewVideoList } from '@src/feature/NewVideoList';
 import { GoogleLogin } from '@src/feature/GoogleLogin'; // Import GoogleLogin
+import { NewVideoList } from '@src/feature/NewVideoList';
+import { css } from '@styled-system/css';
+import { useState } from 'react'; // Removed React, flex import is not used in this file
 
 type View = 'channelManagement' | 'newVideos' | 'googleLogin'; // Add 'googleLogin'
 
@@ -37,6 +36,7 @@ export function Dashboard() {
     <>
       <h3 className={css({ fontSize: '1.1rem', fontWeight: 'bold', mb: '1rem' })}>메뉴</h3>
       <button
+        type="button" // Added type="button"
         onClick={() => setActiveView('channelManagement')}
         className={css({
           width: '100%',
@@ -53,6 +53,7 @@ export function Dashboard() {
         채널 관리
       </button>
       <button
+        type="button" // Added type="button"
         onClick={() => setActiveView('newVideos')}
         className={css({
           width: '100%',
@@ -69,6 +70,7 @@ export function Dashboard() {
         새 동영상 목록
       </button>
       <button // New Google Login button
+        type="button" // Added type="button"
         onClick={() => setActiveView('googleLogin')}
         className={css({
           width: '100%',
@@ -87,9 +89,5 @@ export function Dashboard() {
     </>
   );
 
-  return (
-    <DashboardLayout sidebar={sidebarContent}>
-      {renderContent()}
-    </DashboardLayout>
-  );
+  return <DashboardLayout sidebar={sidebarContent}>{renderContent()}</DashboardLayout>;
 }

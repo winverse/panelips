@@ -1,30 +1,28 @@
-import { LoginService } from '@modules/login/login.service.js';
-import { Injectable } from '@nestjs/common';
-import { TrpcService } from '@src/trpc/trpc.service.js';
+import { INestApplication } from '@nestjs/common'; // Import INestApplication
 import { z } from 'zod';
+import { TrpcService } from '../../trpc/trpc.service.js'; // Relative import
+import { LoginService } from './login.service.js'; // Relative import
 
-@Injectable()
-export class LoginRouter {
-  constructor(
-    private readonly trpcService: TrpcService,
-    private readonly loginService: LoginService,
-  ) {}
-  get router() {
-    return this.trpcService.router({
-      googleLogin: this.trpcService.procedure
-        .meta({
-          description: 'google login',
-        })
-        .input(
-          z.object({
-            googleEmail: z.string().min(5).max(100).email(),
-            googlePassword: z.string().min(5).max(100),
-          }),
-        )
-        .mutation(({ input }) => {
-          const { googleEmail, googlePassword } = input;
-          return this.loginService.googleLogin(googleEmail, googlePassword);
+// Export a function that creates the router
+export function createLoginRouter(app: INestApplication) {
+  const trpcService = app.get(TrpcService);
+  const loginService = app.get(LoginService);
+
+  return trpcService.router({
+    googleLogin: trpcService.procedure
+      .meta({ description: '구글 로그인' }) // Korean description
+      .input(
+        z.object({
+          email: z.string().email(), // Changed from googleEmail
+          password: z.string(), // Changed from googlePassword
         }),
-    });
-  }
+      )
+      .mutation(async ({ input }) => {
+        const { email, password } = input; // Changed from googleEmail, googlePassword
+        const success = await loginService.googleLogin(email, password);
+        return { success };
+      }),
+  });
 }
+
+export type LoginRouter = ReturnType<typeof createLoginRouter>; // Export type for consistency

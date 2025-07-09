@@ -1,9 +1,8 @@
-import { ScrapService } from './scrap.service.js'; // Relative import
 import { INestApplication } from '@nestjs/common'; // Import INestApplication
-import { z } from 'zod';
 import { TrpcService } from '@src/trpc/trpc.service.js';
+import { z } from 'zod';
+import { ScrapService } from './scrap.service.js'; // Relative import
 
-// Export a function that creates the router
 export function createScrapRouter(app: INestApplication) {
   const trpcService = app.get(TrpcService);
   const scrapService = app.get(ScrapService);

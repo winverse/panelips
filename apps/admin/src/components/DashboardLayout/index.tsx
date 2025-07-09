@@ -1,9 +1,9 @@
 // apps/admin/src/components/DashboardLayout/index.tsx
 'use client';
 
-import React, { ReactNode } from 'react';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
+import { ReactNode } from 'react'; // Removed React
 
 interface DashboardLayoutProps {
   sidebar: ReactNode;

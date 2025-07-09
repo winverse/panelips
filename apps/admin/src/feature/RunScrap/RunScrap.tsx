@@ -1,3 +1,4 @@
+// apps/admin/src/feature/RunScrap/RunScrap.tsx
 'use client';
 
 import { Button } from '@src/components/Button';
@@ -18,7 +19,7 @@ export function RunScrap() {
   const { isPending, mutateAsync } = useMutation(trpc.scrap.youtubeChannel.mutationOptions());
 
   const handleClick = async () => {
-    const result = await mutateAsync({
+    const _result = await mutateAsync({
       googleEmail: form.email,
       googlePassword: form.password,
     });

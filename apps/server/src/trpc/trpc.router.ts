@@ -8,17 +8,15 @@ import { TrpcService } from './trpc.service.js';
 
 @Injectable()
 export class TrpcRouter {
-  // Removed implements OnModuleInit
-  private appRouter: AnyRouter; // Store the appRouter here
+  private appRouter: AnyRouter;
 
   constructor(
     private readonly adapterHost: HttpAdapterHost,
     private readonly trpcService: TrpcService,
   ) {}
 
-  // New method to apply middleware and create router
   async applyMiddleware(app: INestApplication) {
-    this.appRouter = createAppRouter(app, this.trpcService); // Create the appRouter here
+    this.appRouter = createAppRouter(app, this.trpcService);
 
     const fastifyInstance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
     await this.register(fastifyInstance);
@@ -46,7 +44,6 @@ export class TrpcRouter {
     const { renderTrpcPanel } = await import('trpc-ui');
     app.get('/panel', (_req, res) => {
       return res.send(
-        // biome-ignore lint/suspicious/noExplicitAny: AnyRouter type collision
         renderTrpcPanel(this.appRouter as any, {
           url: `http://localhost:${PORT}/trpc`,
           transformer: 'superjson',

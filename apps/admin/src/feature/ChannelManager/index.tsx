@@ -1,9 +1,9 @@
 // apps/admin/src/feature/ChannelManager/index.tsx
 'use client';
 
-import React, { useState } from 'react';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
+import { KeyboardEvent, useState } from 'react';
 
 interface ChannelManagerProps {
   onSelectChannel: (channelUrl: string) => void;
@@ -27,8 +27,17 @@ export function ChannelManager({ onSelectChannel }: ChannelManagerProps) {
     onSelectChannel(url); // Call the prop function to update parent state
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, url: string) => {
+    // Changed HTMLLIElement to HTMLButtonElement
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleSelectChannel(url);
+    }
+  };
+
   return (
-    <div className={css({ p: '1rem', border: '1px solid #eee', borderRadius: '8px', width: '300px' })}>
+    <div
+      className={css({ p: '1rem', border: '1px solid #eee', borderRadius: '8px', width: '300px' })}
+    >
       <h2 className={css({ fontSize: '1.2rem', fontWeight: 'bold', mb: '1rem' })}>채널 관리</h2>
       <div className={flex({ gap: '0.5rem', mb: '1rem' })}>
         <input
@@ -44,6 +53,7 @@ export function ChannelManager({ onSelectChannel }: ChannelManagerProps) {
           })}
         />
         <button
+          type="button" // Added type="button"
           onClick={handleAddChannel}
           className={css({
             p: '0.5rem 1rem',
@@ -63,11 +73,15 @@ export function ChannelManager({ onSelectChannel }: ChannelManagerProps) {
         {channels.length === 0 ? (
           <li className={css({ color: '#666' })}>아직 추가된 채널이 없습니다.</li>
         ) : (
-          channels.map((channel, index) => (
-            <li
-              key={index}
+          channels.map((channel) => (
+            <button // Changed <li> to <button>
+              key={channel}
+              type="button" // Explicitly set type to button
               onClick={() => handleSelectChannel(channel)}
+              onKeyDown={(event) => handleKeyDown(event, channel)}
               className={css({
+                width: '100%',
+                textAlign: 'left',
                 p: '0.5rem',
                 border: '1px solid #ddd',
                 borderRadius: '4px',
@@ -75,10 +89,15 @@ export function ChannelManager({ onSelectChannel }: ChannelManagerProps) {
                 cursor: 'pointer',
                 backgroundColor: selectedChannel === channel ? '#e6f7ff' : 'white',
                 _hover: { backgroundColor: '#f0f0f0' },
+                background: 'none',
+                color: 'inherit',
+                font: 'inherit',
+                outline: 'none',
+                // Add focus style if needed: _focus: { outline: '2px solid blue' }
               })}
             >
               {channel}
-            </li>
+            </button>
           ))
         )}
       </ul>

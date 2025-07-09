@@ -1,8 +1,8 @@
-import { createScrapRouter } from '@modules/scrap/scrap.router.js';
-import { createYoutubeRouter } from '@modules/sns/youtube/youtube.router.js';
+import { createLoginRouter } from '@modules/login/login.router.js'; // Added .js back
+import { createScrapRouter } from '@modules/scrap/scrap.router.js'; // Added .js back
+import { createYoutubeRouter } from '@modules/sns/youtube/youtube.router.js'; // Added .js back
 import { INestApplication } from '@nestjs/common';
-import { createLoginRouter } from '@src/trpc/login.router.js';
-import { TrpcService } from '@src/trpc/trpc.service.js'; // Keep .js for now if it's working
+import { TrpcService } from '@src/trpc/trpc.service.js';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 
 export type AppRouter = ReturnType<typeof createAppRouter>;

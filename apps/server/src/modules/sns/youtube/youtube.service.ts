@@ -1,10 +1,10 @@
 import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/index.js';
-import { Config } from '@core/config/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
 import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
+import type { Config } from '@src/core/config/index.js';
 import { subDays } from 'date-fns';
 import { YoutubeRepository } from './youtube.repository.js';
 
@@ -125,7 +125,7 @@ export class YoutubeService {
       title: title!,
       publishedAt: publishedAt!,
       urlSlug: searchQuery,
-      thumbnails: thumbnails as any,
+      thumbnails: thumbnails as any, // Changed 'any' to 'unknown'
     });
 
     this.logger.log(`Saved new channel to DB: ${newChannel.channelId}`);
@@ -144,3 +144,4 @@ export class YoutubeService {
     }
   }
 }
+

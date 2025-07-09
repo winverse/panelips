@@ -7,7 +7,7 @@ export type TrpcContext = {
   reply: FastifyReply;
 };
 
-export type TrpcMeta = {};
+export type TrpcMeta = Record<string, unknown>; // Changed from {}
 
 export type TrpcInstance = TRPCRootObject<
   TrpcContext,

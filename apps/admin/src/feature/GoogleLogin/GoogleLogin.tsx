@@ -33,7 +33,6 @@ export function GoogleLogin() {
         setMessage('❌ 구글 로그인 실패. 자격 증명을 확인하거나 2단계 인증을 해제해주세요.');
       }
     } catch (error: any) {
-      // Catch error from mutateAsync
       setMessage(`❌ 로그인 중 오류 발생: ${error.message}`);
       console.error('Google login error:', error);
     }

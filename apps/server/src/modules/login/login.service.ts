@@ -11,19 +11,10 @@ export class LoginService {
   private page: Page | null = null;
   private readonly COOKIE_PATH = path.resolve(process.cwd(), 'playwright', 'cookie.json');
 
-  async onModuleInit() {
-    // Ensure the playwright directory exists
-    const playwrightDir = path.dirname(this.COOKIE_PATH);
-    await fs
-      .mkdir(playwrightDir, { recursive: true })
-      .catch((e) => this.logger.error(`Failed to create playwright directory: ${e.message}`));
-  }
-
   async googleLogin(email: string, password: string): Promise<boolean> {
     this.logger.log('🔐 Attempting Google login...');
 
     try {
-      // Launch browser if not already launched
       if (!this.browser) {
         this.browser = await chromium.launch({
           headless: true, // Set to false for debugging UI
@@ -32,13 +23,13 @@ export class LoginService {
         });
       }
 
-      // Create context with existing cookies if available
-      let storageState;
+      let storageState: string | null = null;
       try {
         storageState = await fs.readFile(this.COOKIE_PATH, 'utf8');
         this.context = await this.browser.newContext({ storageState: JSON.parse(storageState) });
         this.logger.log('Loaded existing cookie.json');
-      } catch (error) {
+      } catch (e) {
+        console.error(e);
         this.logger.warn(
           'No existing cookie.json found or failed to load. Starting fresh session.',
         );
@@ -71,11 +62,10 @@ export class LoginService {
         await this.page.fill(passwordInputSelector, password);
         await this.page.click('#passwordNext');
       } catch (e) {
+        console.error(e);
         this.logger.warn(
           'Password field not found or timed out. May require manual intervention or passkey.',
         );
-        // If password field is not found, it might be a passkey prompt or other security step.
-        // We'll wait for a common post-login URL or a timeout.
       }
 
       // Wait for navigation to a logged-in state or a common Google page
@@ -84,7 +74,7 @@ export class LoginService {
         .catch(async () => {
           this.logger.warn('Did not navigate to myaccount.google.com. Checking current URL.');
           // If not redirected, check if we are on a page that indicates successful login
-          if (this.page && this.page.url().includes('accounts.google.com/signin/v2/challenge')) {
+          if (this.page?.url().includes('accounts.google.com/signin/v2/challenge')) {
             this.logger.error(
               'Google login requires further challenge (e.g., 2FA, passkey). Manual intervention needed.',
             );
@@ -122,7 +112,6 @@ export class LoginService {
 
   private async checkIfLoggedIn(page: Page): Promise<boolean> {
     try {
-      // Navigate to a known Google page that requires login to check status
       await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded' });
       const currentUrl = page.url();
       return currentUrl.includes('myaccount.google.com') && !currentUrl.includes('signin');

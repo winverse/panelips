@@ -6,7 +6,7 @@ interface SpinnerProps {
   className?: string;
 }
 
-export const Spinner = ({ size = 'md', color, className }: SpinnerProps) => {
+export const Spinner = ({ size = 'md', color, className: _className }: SpinnerProps) => {
   const spinnerSize = {
     sm: '12px',
     md: '16px',
