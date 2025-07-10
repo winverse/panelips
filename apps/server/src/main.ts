@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
+import { TrpcRouter } from './trpc/trpc.router.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -9,6 +10,9 @@ async function bootstrap() {
       maxParamLength: 5000,
     }),
   );
+
+  const trpcRouter = app.get(TrpcRouter);
+  await trpcRouter.applyMiddleware(app);
 
   app.enableCors({
     origin: ['http://localhost:3000', 'http://localhost:8080'],

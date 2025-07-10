@@ -4,8 +4,11 @@ export async function GET(_request: NextRequest) {
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
     const response = await fetch(`${backendUrl}/panel`);
+
     if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
+      return new NextResponse(`Backend returned status: ${response.status}`, {
+        status: response.status,
+      });
     }
 
     const html = await response.text();
