@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
+import { TrpcService } from '@src/trpc/trpc.service.js';
 import { z } from 'zod';
-import { TrpcService } from '../../trpc/trpc.service.js';
 import { LoginService } from './login.service.js';
 
 export function createLoginRouter(app: INestApplication) {
