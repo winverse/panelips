@@ -9,7 +9,6 @@ export class MongoService extends PrismaClient implements OnModuleInit, OnModule
 
   constructor(config: ConfigService<Config>) {
     const dbUrl = config.get('db.url');
-    console.log('MONGO SERVICE CONSTRUCTOR - DATABASE_URL:', dbUrl);
     super({
       datasources: {
         db: {
@@ -20,6 +19,7 @@ export class MongoService extends PrismaClient implements OnModuleInit, OnModule
     });
     this.dbUrl = dbUrl;
   }
+
   async onModuleInit() {
     try {
       await this.$connect();
