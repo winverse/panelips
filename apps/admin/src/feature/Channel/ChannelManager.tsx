@@ -33,7 +33,9 @@ export function ChannelManager() {
     const parseUrl = new URL(url);
     const { origin, pathname } = parseUrl;
     const channelId = pathname.split('/')[1];
-    const normalizedUrl = `${origin}/${channelId}`;
+    const normalizedUrl = decodeURIComponent(`${origin}/${channelId}`);
+
+    console.log('normalizedUrl', normalizedUrl);
     if (channels.includes(normalizedUrl)) return;
     setChannels([...channels, normalizedUrl]);
   };
@@ -45,8 +47,8 @@ export function ChannelManager() {
         <Input
           type="text"
           placeholder="유튜브 채널 URL"
-          value={decodeURIComponent(channelUrl)}
-          onChange={(e) => setChannelUrl(e.target.value)}
+          value={channelUrl}
+          onChange={(e) => setChannelUrl(decodeURIComponent(e.target.value))}
           onKeyDown={handleKeyDown}
           size="md"
           variant="outline"

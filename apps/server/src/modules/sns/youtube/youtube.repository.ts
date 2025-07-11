@@ -6,15 +6,15 @@ import { MongoService } from '@src/core/database/mongo/mongo.service.js';
 export class YoutubeRepository {
   constructor(private readonly mongo: MongoService) {}
 
-  async findChannelByUrl(url: string) {
+  public async findChannelByUrl(url: string) {
     return this.mongo.youtubeChannel.findFirst({ where: { url } });
   }
 
-  async createChannel(data: Prisma.YoutubeChannelCreateInput) {
+  public async createChannel(data: Prisma.YoutubeChannelCreateInput) {
     return this.mongo.youtubeChannel.create({ data });
   }
 
-  findVideos(channelId: string, publishedAfter: Date) {
+  public async findVideos(channelId: string, publishedAfter: Date) {
     return this.mongo.youtubeVideo.findMany({
       where: {
         channel: {

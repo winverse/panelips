@@ -6,6 +6,7 @@ import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
 import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
 import type { Config } from '@src/core/config/index.js';
 import { subDays } from 'date-fns';
+import { isEmpty } from 'es-toolkit/compat';
 import { YoutubeRepository } from './youtube.repository.js';
 
 @Injectable()
@@ -27,7 +28,7 @@ export class YoutubeService {
     const channelId = await this.getChannelId(url);
     this.logger.log(`Searching new videos for channel: ${channelId}`);
 
-    const oneDayAgo = subDays(new Date(), 1);
+    const oneDayAgo = subDays(new Date(), 2);
     const publishedAfter = oneDayAgo.toISOString();
 
     const searchResponse = await this.youtubeClient.search.list({
@@ -40,7 +41,7 @@ export class YoutubeService {
     });
 
     const items = searchResponse.data.items;
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || isEmpty(items)) {
       this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
       return [];
     }
@@ -50,7 +51,7 @@ export class YoutubeService {
       .map((item) => item.id?.videoId)
       .filter((id): id is string => !!id);
 
-    if (!Array.isArray(videoIds) || videoIds.length === 0) {
+    if (!Array.isArray(videoIds) || isEmpty(videoIds)) {
       this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
       return [];
     }
@@ -62,11 +63,11 @@ export class YoutubeService {
     });
 
     const videosWithDetails = detailsResponse.data.items;
-    if (!Array.isArray(videosWithDetails) || videosWithDetails.length === 0) {
+    if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
       return [];
     }
 
-    const maxDurationInSeconds = ONE_HOUR_AS_S + ONE_MINUTE_AS_S * 30;
+    const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
     const filteredVideos = videosWithDetails.filter((video) => {
       const duration = video.contentDetails?.duration;
       if (!duration) return false; // 길이가 없으면 제외
@@ -75,6 +76,7 @@ export class YoutubeService {
     });
 
     const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
+    console.log('existVideos', existVideos);
 
     const processedURL = existVideos.map((video) => video.url);
     const videoUrls = filteredVideos
@@ -87,18 +89,21 @@ export class YoutubeService {
   }
 
   private async getChannelId(url: string): Promise<string> {
-    const exists = await this.youtubeRepository.findChannelByUrl(url);
+    const decoded = decodeURIComponent(url);
+    console.log('dcoded', decoded);
+    const exists = await this.youtubeRepository.findChannelByUrl(decoded);
 
     if (exists) {
       this.logger.log(`Found channel in DB: ${exists.channelId}`);
       return exists.channelId;
     }
 
-    const searchQuery = this.extractSearchQueryFromUrl(url);
+    const searchQuery = this.extractSearchQueryFromUrl(decoded);
     if (!searchQuery) {
-      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_EXTRACT_KEYWORD(url));
+      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_EXTRACT_KEYWORD(decoded));
     }
 
+    console.log('searchQuery', searchQuery);
     this.logger.log(`Searching YouTube with query: ${searchQuery}`);
     const response = await this.youtubeClient.search.list({
       part: ['snippet'],
@@ -135,8 +140,11 @@ export class YoutubeService {
   private extractSearchQueryFromUrl(urlString: string): string | null {
     try {
       const parsedUrl = new URL(urlString);
+
+      console.log(parsedUrl, parsedUrl);
       const searchQuery = parsedUrl.pathname.split('/').filter(Boolean).pop();
-      return searchQuery || null;
+
+      return typeof searchQuery === 'string' ? decodeURIComponent(searchQuery) : null;
     } catch (error) {
       console.error(error);
       this.logger.warn(YOUTUBE_ERROR.WRONG_URL(urlString));

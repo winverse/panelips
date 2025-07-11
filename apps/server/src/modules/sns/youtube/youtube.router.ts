@@ -17,7 +17,7 @@ export function createYoutubeRouter(app: INestApplication) {
         }),
       )
       .output(z.array(z.string()))
-      .mutation(async ({ input }) => {
+      .query(async ({ input }) => {
         try {
           return await youtubeService.getNewVideos(input.url);
         } catch (error) {
