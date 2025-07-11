@@ -27,8 +27,8 @@ export class YoutubeService {
     const channelId = await this.getChannelId(url);
     this.logger.log(`Searching new videos for channel: ${channelId}`);
 
-    const oneWeekAgo = subDays(new Date(), 7);
-    const publishedAfter = oneWeekAgo.toISOString();
+    const oneDayAgo = subDays(new Date(), 1);
+    const publishedAfter = oneDayAgo.toISOString();
 
     const searchResponse = await this.youtubeClient.search.list({
       part: ['id', 'snippet'],
@@ -74,7 +74,7 @@ export class YoutubeService {
       return durationInSeconds <= maxDurationInSeconds;
     });
 
-    const existVideos = await this.youtubeRepository.findVideos(channelId, oneWeekAgo);
+    const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
 
     const processedURL = existVideos.map((video) => video.url);
     const videoUrls = filteredVideos

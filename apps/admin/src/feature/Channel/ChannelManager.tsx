@@ -2,6 +2,7 @@
 
 import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
+import { ChannelItem } from '@src/feature/Channel/ChannelItem';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { KeyboardEvent, useState } from 'react';
@@ -9,14 +10,6 @@ import { KeyboardEvent, useState } from 'react';
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useState('');
   const [channels, setChannels] = useState<string[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-
-  const handleAddChannel = () => {
-    if (channelUrl && !channels.includes(channelUrl)) {
-      setChannels([...channels, channelUrl]);
-      setChannelUrl('');
-    }
-  };
 
   const handleRemoveChannel = (url: string) => {
     setChannels(channels.filter((channel) => channel !== url));
@@ -24,8 +17,25 @@ export function ChannelManager() {
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      setSelectedChannel(event.currentTarget.value);
+      const channelUrl = event.currentTarget.value;
+      handleAddChannelUrl(channelUrl);
     }
+  };
+
+  const handleAddButton = () => {
+    if (channelUrl && !channels.includes(channelUrl)) {
+      handleAddChannelUrl(channelUrl);
+      setChannelUrl('');
+    }
+  };
+
+  const handleAddChannelUrl = (url: string) => {
+    const parseUrl = new URL(url);
+    const { origin, pathname } = parseUrl;
+    const channelId = pathname.split('/')[1];
+    const normalizedUrl = `${origin}/${channelId}`;
+    if (channels.includes(normalizedUrl)) return;
+    setChannels([...channels, normalizedUrl]);
   };
 
   return (
@@ -42,7 +52,7 @@ export function ChannelManager() {
           variant="outline"
           style={{ width: '400px' }}
         />
-        <Button size="md" variant="primary" type="button" onClick={handleAddChannel}>
+        <Button size="md" variant="primary" type="button" onClick={handleAddButton}>
           추가
         </Button>
       </div>
@@ -53,25 +63,7 @@ export function ChannelManager() {
           <li className={css({ color: '#666' })}>Empty Video List</li>
         ) : (
           channels.map((channel) => (
-            <li
-              key={channel}
-              className={flex({ mb: '0.5rem', direction: 'row', alignItems: 'center' })}
-            >
-              <Button
-                size="sm"
-                variant="outline"
-                key={channel}
-                type="button"
-                onClick={() => handleRemoveChannel(channel)}
-              >
-                {decodeURIComponent(channel)}
-              </Button>
-              <div className={css({ ml: '0.5rem' })}>
-                <Button size="sm" variant="primary">
-                  영상 업데이트
-                </Button>
-              </div>
-            </li>
+            <ChannelItem key={channel} removeItem={handleRemoveChannel} channel={channel} />
           ))
         )}
       </ul>
