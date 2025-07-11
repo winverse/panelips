@@ -13,6 +13,7 @@ export const buttonRecipe = defineRecipe({
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+    whiteSpace: 'nowrap',
     _hover: {
       opacity: 0.9,
     },
