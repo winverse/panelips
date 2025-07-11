@@ -4,6 +4,8 @@ import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
 import { ChannelEmptyState } from '@src/feature/Channel/ChannelEmptyState';
 import { ChannelItem } from '@src/feature/Channel/ChannelItem';
+import { ChannelList } from '@src/feature/Channel/ChannelList';
+import { ChannelScrapBoard } from '@src/feature/Channel/ChannelScrapBoard';
 import { useTRPC } from '@src/lib/trpc';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
@@ -108,6 +110,7 @@ export function ChannelManager() {
         border: '1px solid',
         borderColor: 'border.primary',
         borderRadius: '8px',
+        h: '100%',
       })}
     >
       <h2
@@ -137,34 +140,16 @@ export function ChannelManager() {
       </div>
 
       <div
-        className={flex({ justifyContent: 'space-between', alignItems: 'center', mb: '0.5rem' })}
+        className={flex({
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: '0.5rem',
+          gap: '1rem',
+        })}
       >
-        <h3 className={css({ fontSize: '1rem', fontWeight: 'bold', color: 'text.primary' })}>
-          저장된 채널
-        </h3>
-        {channels.length > 0 && (
-          <Button
-            size="sm"
-            variant="primary"
-            type="button"
-            onClick={handleBulkScrap}
-            disabled={isScrapingInProgress}
-            className={css({ display: 'flex', alignItems: 'center', gap: '0.25rem' })}
-          >
-            <MdDownload />
-            {isScrapingInProgress ? '스크랩 중...' : '일괄 스크랩'}
-          </Button>
-        )}
+        <ChannelList channels={channels} removeItem={handleRemoveChannel} />
+        <ChannelScrapBoard youtubeInfo={[]} />
       </div>
-      <ul className={css({ listStyle: 'none', p: 0 })}>
-        {channels.length === 0 ? (
-          <ChannelEmptyState />
-        ) : (
-          channels.map((channel) => (
-            <ChannelItem key={channel} removeItem={handleRemoveChannel} channel={channel} />
-          ))
-        )}
-      </ul>
     </div>
   );
 }

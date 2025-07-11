@@ -12,7 +12,6 @@ type ChannelItemProps = {
   removeItem: (channel: string) => void;
 };
 
-
 export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
   const [showVideoList, setShowVideoList] = useState(false);
   const trpc = useTRPC();
@@ -83,75 +82,6 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
           </div>
         )}
       </li>
-      {showVideoList && data && data.length > 0 && (
-        <div
-          className={css({
-            mt: '0.5rem',
-            ml: '1rem',
-            p: '1rem',
-            bg: 'background.secondary',
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'border.primary',
-          })}
-        >
-          <h4 className={css({ mb: '0.75rem', fontSize: '0.9rem', fontWeight: '600' })}>
-            신규 영상 목록
-          </h4>
-          <div className={css({ display: 'grid', gap: '0.75rem' })}>
-            {data.map((video, index) => (
-              <div
-                key={index}
-                className={css({
-                  display: 'flex',
-                  gap: '0.75rem',
-                  alignItems: 'flex-start',
-                  p: '0.5rem',
-                  bg: 'background.primary',
-                  borderRadius: '6px',
-                  border: '1px solid',
-                  borderColor: 'border.secondary',
-                })}
-              >
-                {video.thumbnail && (
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className={css({
-                      width: '80px',
-                      height: '60px',
-                      objectFit: 'cover',
-                      borderRadius: '4px',
-                      flexShrink: 0,
-                    })}
-                  />
-                )}
-                <div className={css({ flex: 1, minWidth: 0 })}>
-                  <a
-                    href={video.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={css({
-                      display: 'block',
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      color: 'text.primary',
-                      textDecoration: 'none',
-                      lineHeight: '1.4',
-                      _hover: {
-                        color: 'primary.600',
-                        textDecoration: 'underline',
-                      },
-                    })}
-                  >
-                    {video.title}
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
