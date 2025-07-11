@@ -1,17 +1,16 @@
-// apps/admin/src/components/DashboardLayout/index.tsx
 'use client';
 
+import { Sidebar } from '@src/components/Sidebar';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { ReactNode, useState } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
 
 interface DashboardLayoutProps {
-  sidebar: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
-export function DashboardLayout({ sidebar, children }: DashboardLayoutProps) {
+export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -44,7 +43,9 @@ export function DashboardLayout({ sidebar, children }: DashboardLayoutProps) {
         >
           {isMenuOpen ? <FiX /> : <FiMenu />}
         </button>
-        <div className={css({ mt: '3rem', display: isMenuOpen ? 'block' : 'none' })}>{sidebar}</div>
+        <div className={css({ mt: '3rem', display: isMenuOpen ? 'block' : 'none' })}>
+          <Sidebar />
+        </div>
       </aside>
       <main
         className={css({

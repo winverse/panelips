@@ -16,10 +16,15 @@ export function createLoginRouter(app: INestApplication) {
           password: z.string(),
         }),
       )
+      .output(
+        z.object({
+          success: z.boolean(),
+        }),
+      )
       .mutation(async ({ input }) => {
         const { email, password } = input;
-        const success = await loginService.googleLogin(email, password);
-        return { success };
+        await loginService.googleLogin(email, password);
+        return { success: true };
       }),
   });
 }

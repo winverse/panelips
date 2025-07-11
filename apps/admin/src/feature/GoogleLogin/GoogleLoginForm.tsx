@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@src/components/Button';
+import { Input } from '@src/components/Input';
 import useInputs from '@src/hooks/useInputs';
 import { useTRPC } from '@src/lib/trpc';
 import { css } from '@styled-system/css';
@@ -7,7 +9,7 @@ import { flex } from '@styled-system/patterns';
 import { useMutation } from '@tanstack/react-query';
 import React, { useState } from 'react';
 
-export function GoogleLogin() {
+export function GoogleLoginForm() {
   const trpc = useTRPC();
   const [form, onChange] = useInputs({
     email: '',
@@ -26,7 +28,8 @@ export function GoogleLogin() {
     }
 
     try {
-      const data = await mutateAsync({ email: form.email, password: form.password }); // Pass form data
+      const data = await mutateAsync({ email: form.email, password: form.password });
+      console.log('data', data);
       if (data.success) {
         setMessage('✅ 구글 로그인 성공! 쿠키가 저장되었습니다.');
       } else {
@@ -45,7 +48,7 @@ export function GoogleLogin() {
       <h2 className={css({ fontSize: '1.2rem', fontWeight: 'bold', mb: '1rem' })}>구글 로그인</h2>
       <form onSubmit={handleSubmit}>
         <div className={flex({ flexDirection: 'column', gap: '0.75rem', mb: '1rem' })}>
-          <input
+          <Input
             type="email"
             name="email"
             placeholder="구글 이메일"
@@ -59,7 +62,7 @@ export function GoogleLogin() {
             })}
             disabled={isPending}
           />
-          <input
+          <Input
             type="password"
             name="password"
             placeholder="구글 비밀번호"
@@ -71,25 +74,12 @@ export function GoogleLogin() {
               borderRadius: '4px',
               width: '100%',
             })}
-            disabled={isPending} // Use isPending
+            disabled={isPending}
           />
         </div>
-        <button
-          type="submit"
-          className={css({
-            p: '0.75rem 1.5rem',
-            bg: '#4285F4', // Google blue
-            color: 'white',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            width: '100%',
-            _hover: { bg: '#357ae8' },
-            opacity: isPending ? 0.7 : 1, // Use isPending
-          })}
-          disabled={isPending} // Use isPending
-        >
+        <Button size="md" variant="primary" type="submit" disabled={isPending}>
           {isPending ? '로그인 중...' : '로그인'}
-        </button>
+        </Button>
       </form>
       {message && (
         <p

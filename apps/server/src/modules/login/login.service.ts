@@ -53,11 +53,8 @@ export class LoginService {
       requestHandler: async ({ page, request, log }) => {
         log.info(`[Processing started] ${request.url}`);
 
-        if (request.label === 'LOGIN') {
-          await this.handleGoogleLogin(page, request.userData);
-        }
-
-        await page.waitForTimeout(20000000);
+        await this.handleGoogleLogin(page, request.userData);
+        await page.close();
       },
 
       failedRequestHandler: async ({ page, request, error }) => {

@@ -1,10 +1,12 @@
-// apps/admin/src/app/page.tsx
 'use client';
 
-import { Dashboard } from '@src/feature/Dashboard'; // Import the new Dashboard component
+import { ChannelManager } from '@src/feature/ChannelManager';
+import { DashboardLayout } from '@src/Layouts/DashboardLayout';
 
 export default function Home() {
   return (
-    <Dashboard /> // Render the Dashboard component
+    <DashboardLayout>
+      <ChannelManager />
+    </DashboardLayout>
   );
 }
