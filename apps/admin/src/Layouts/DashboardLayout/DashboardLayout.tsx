@@ -5,6 +5,8 @@ import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { ReactNode, useState } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface DashboardLayoutProps {
   children?: ReactNode;
@@ -18,14 +20,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className={flex({ height: '100vh', width: '100vw' })}>
       <aside
-        className={css({
+        className={flex({
           width: isMenuOpen ? '250px' : '80px',
           bg: 'aside',
           borderRight: '1px solid',
           borderColor: 'text',
           p: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
+          flexDir: 'column',
           gap: '0.5rem',
           transition: 'width 0.3s ease',
           position: 'relative',
@@ -36,14 +37,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onClick={toggleMenu}
           className={css({
             position: 'absolute',
-            top: '1rem',
-            right: '1rem',
+            top: '1.25rem',
+            right: isMenuOpen ? '1rem' : '1.5rem',
             zIndex: 1000,
+            p: '0.5rem',
+            bg: 'transparent',
+            border: '1px solid',
+            borderColor: 'border.primary',
+            borderRadius: '6px',
+            color: 'text.secondary',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            _hover: {
+              bg: 'background.secondary',
+              color: 'text.primary',
+            },
           })}
         >
           {isMenuOpen ? <FiX /> : <FiMenu />}
         </button>
-        <div className={css({ mt: '3rem', display: isMenuOpen ? 'block' : 'none' })}>
+        <div className={css({ mt: '2.5rem', display: isMenuOpen ? 'block' : 'none', h: '100%' })}>
           <Sidebar />
         </div>
       </aside>
@@ -57,6 +70,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {children}
       </main>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 }

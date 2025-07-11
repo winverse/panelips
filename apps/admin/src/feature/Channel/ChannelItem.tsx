@@ -1,9 +1,10 @@
 import { Button } from '@src/components/Button';
+import { useTooltip } from '@src/hooks/useTooltip';
 import { useTRPC } from '@src/lib/trpc';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { MdMailOutline, MdMovie } from 'react-icons/md';
 
 type ChannelItemProps = {
   channel: string;
@@ -18,6 +19,11 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
     }),
   );
 
+  const tooltip = useTooltip({
+    content: '클릭하여 삭제',
+    position: 'top',
+  });
+
   return (
     <li key={channel} className={flex({ mb: '0.5rem', direction: 'row', alignItems: 'center' })}>
       <Button
@@ -26,16 +32,42 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
         key={channel}
         type="button"
         onClick={() => removeItem(channel)}
-        isLoading={isPending}
+        {...tooltip.tooltipProps}
       >
         {decodeURIComponent(channel)}
       </Button>
-      <div className={css({ ml: '0.5rem' })}>
-        <Button size="sm" variant="primary">
-          영상 업데이트
-        </Button>
-      </div>
-      {data && <div className={css({ ml: '0.5rem' })}>{data.length}개의 신규 영상이 있습니다.</div>}
+      <tooltip.TooltipComponent />
+      {data && (
+        <div
+          className={css({ ml: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' })}
+        >
+          <div
+            className={css({
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              px: '0.75rem',
+              py: '0.375rem',
+              bg: data.length > 0 ? 'success.100' : 'background.secondary',
+              color: data.length > 0 ? 'success.700' : 'text.secondary',
+              border: '1px solid',
+              borderColor: data.length > 0 ? 'success.500' : 'border.primary',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: '500',
+            })}
+          >
+            <span
+              className={css({
+                fontSize: '0.9rem',
+              })}
+            >
+              {data.length > 0 ? <MdMovie /> : <MdMailOutline />}
+            </span>
+            <span>{data.length > 0 ? `${data.length}개 신규 영상` : '신규 영상 없음'}</span>
+          </div>
+        </div>
+      )}
     </li>
   );
 }

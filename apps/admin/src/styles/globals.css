@@ -1,5 +1,13 @@
 @layer reset, base, tokens, recipes, utilities;
 
+:root {
+  --colors-body: #fff;
+  --colors-text: #374151;
+  --colors-button: #f3f4f6;
+  --colors-aside: #f9fafb;
+  --colors-main: #fff;
+}
+
 @layer base {
   body {
     background-color: var(--colors-body);
