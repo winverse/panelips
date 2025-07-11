@@ -2,21 +2,29 @@
 
 import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
-import { ChannelEmptyState } from '@src/feature/Channel/ChannelEmptyState';
-import { ChannelItem } from '@src/feature/Channel/ChannelItem';
 import { ChannelList } from '@src/feature/Channel/ChannelList';
 import { ChannelScrapBoard } from '@src/feature/Channel/ChannelScrapBoard';
 import { useTRPC } from '@src/lib/trpc';
+import {
+  addChannelAtom,
+  channelsAtom,
+  channelUrlAtom,
+  isScrapingInProgressAtom,
+  removeChannelAtom,
+} from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
-import { KeyboardEvent, useState } from 'react';
-import { MdDownload } from 'react-icons/md';
+import { useAtom } from 'jotai';
+import { KeyboardEvent } from 'react';
 import { toast } from 'react-toastify';
 
 export function ChannelManager() {
-  const [channelUrl, setChannelUrl] = useState('');
-  const [channels, setChannels] = useState<string[]>([]);
-  const [isScrapingInProgress, setIsScrapingInProgress] = useState(false);
+  const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
+  const [channels] = useAtom(channelsAtom);
+  const [isScrapingInProgress, setIsScrapingInProgress] = useAtom(isScrapingInProgressAtom);
+  const [, addChannel] = useAtom(addChannelAtom);
+  const [, removeChannel] = useAtom(removeChannelAtom);
+
   const trpc = useTRPC();
 
   const handleBulkScrap = () => {
@@ -35,7 +43,7 @@ export function ChannelManager() {
   };
 
   const handleRemoveChannel = (url: string) => {
-    setChannels(channels.filter((channel) => channel !== url));
+    removeChannel(url);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -94,9 +102,11 @@ export function ChannelManager() {
         return false;
       }
 
-      setChannels([...channels, normalizedUrl]);
-      toast.success('채널이 성공적으로 추가되었습니다.');
-      return true;
+      const success = addChannel(normalizedUrl);
+      if (success) {
+        toast.success('채널이 성공적으로 추가되었습니다.');
+      }
+      return success;
     } catch (error) {
       toast.error('올바른 URL 형식이 아닙니다. 유효한 유튜브 채널 URL을 입력해주세요.');
       return false;
