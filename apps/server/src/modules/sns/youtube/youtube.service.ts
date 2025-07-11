@@ -77,17 +77,21 @@ export class YoutubeService {
     });
 
     const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
-    console.log('existVideos', existVideos);
 
-    const titles = items.map((item) => ({ id: item.id?.videoId, title: item.snippet?.title }));
+    const videoDetails = items.map((item) => ({
+      id: item.id?.videoId,
+      title: item.snippet?.title,
+      thumbnail: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url,
+    }));
     const processedURL = existVideos.map((video) => video.url);
 
     const videoInfo = filteredVideos
       .map((video) => ({
         url: video.id && `https://www.youtube.com/watch?v=${video.id}`,
-        title: titles.find((title) => title.id === video.id)?.title,
+        title: videoDetails.find((detail) => detail.id === video.id)?.title,
+        thumbnail: videoDetails.find((detail) => detail.id === video.id)?.thumbnail,
       }))
-      .filter(({ title, url }) => !!title && !!url)
+      .filter(({ title, url, thumbnail }) => !!title && !!url && !!thumbnail)
       .filter((videoUrl): videoUrl is GetNewVideosType => !processedURL.includes(videoUrl.url!));
 
     this.logger.log(`Found ${videoInfo.length} new videos (under 1h 30m) from URL: ${url}`);

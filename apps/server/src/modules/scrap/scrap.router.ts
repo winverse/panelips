@@ -1,6 +1,7 @@
-import { INestApplication } from '@nestjs/common'; // Import INestApplication
+import { INestApplication } from '@nestjs/common';
 import { TrpcService } from '@src/trpc/trpc.service.js';
-import { ScrapService } from './scrap.service.js'; // Relative import
+import { z } from 'zod';
+import { ScrapService } from './scrap.service.js';
 
 export function createScrapRouter(app: INestApplication) {
   const trpcService = app.get(TrpcService);
@@ -21,4 +22,4 @@ export function createScrapRouter(app: INestApplication) {
   });
 }
 
-export type ScrapRouter = ReturnType<typeof createScrapRouter>; // Export type for consistency
+export type ScrapRouter = ReturnType<typeof createScrapRouter>;

@@ -13,4 +13,5 @@ export type YouTubeThumbnail = {
 export type GetNewVideosType = {
   title: string;
   url: string;
+  thumbnail: string;
 };

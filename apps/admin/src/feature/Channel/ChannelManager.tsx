@@ -2,16 +2,35 @@
 
 import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
-import { ChannelItem } from '@src/feature/Channel/ChannelItem';
 import { ChannelEmptyState } from '@src/feature/Channel/ChannelEmptyState';
+import { ChannelItem } from '@src/feature/Channel/ChannelItem';
+import { useTRPC } from '@src/lib/trpc';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { KeyboardEvent, useState } from 'react';
+import { MdDownload } from 'react-icons/md';
 import { toast } from 'react-toastify';
 
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useState('');
   const [channels, setChannels] = useState<string[]>([]);
+  const [isScrapingInProgress, setIsScrapingInProgress] = useState(false);
+  const trpc = useTRPC();
+
+  const handleBulkScrap = () => {
+    if (channels.length === 0) {
+      toast.warning('스크랩할 채널이 없습니다.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${channels.length}개의 채널을 일괄 스크랩하시겠습니까?\n\n이 작업은 시간이 걸릴 수 있습니다.`,
+    );
+
+    if (confirmed) {
+      setIsScrapingInProgress(true);
+    }
+  };
 
   const handleRemoveChannel = (url: string) => {
     setChannels(channels.filter((channel) => channel !== url));
@@ -59,7 +78,6 @@ export function ChannelManager() {
       const parseUrl = new URL(url);
       const { origin, pathname } = parseUrl;
 
-      // Check if it's a valid YouTube URL
       if (!origin.includes('youtube.com') && !origin.includes('youtu.be')) {
         toast.error('유튜브 URL만 입력 가능합니다.');
         return false;
@@ -84,8 +102,24 @@ export function ChannelManager() {
   };
 
   return (
-    <div className={css({ p: '1rem', border: '1px solid', borderColor: 'border.primary', borderRadius: '8px' })}>
-      <h2 className={css({ fontSize: '1.2rem', fontWeight: 'bold', mb: '1rem', color: 'text.primary' })}>채널 관리</h2>
+    <div
+      className={css({
+        p: '1rem',
+        border: '1px solid',
+        borderColor: 'border.primary',
+        borderRadius: '8px',
+      })}
+    >
+      <h2
+        className={css({
+          fontSize: '1.2rem',
+          fontWeight: 'bold',
+          mb: '1rem',
+          color: 'text.primary',
+        })}
+      >
+        채널 관리
+      </h2>
       <div className={flex({ gap: '0.5rem', mb: '1rem' })}>
         <Input
           type="text"
@@ -102,7 +136,26 @@ export function ChannelManager() {
         </Button>
       </div>
 
-      <h3 className={css({ fontSize: '1rem', fontWeight: 'bold', mb: '0.5rem', color: 'text.primary' })}>저장된 채널</h3>
+      <div
+        className={flex({ justifyContent: 'space-between', alignItems: 'center', mb: '0.5rem' })}
+      >
+        <h3 className={css({ fontSize: '1rem', fontWeight: 'bold', color: 'text.primary' })}>
+          저장된 채널
+        </h3>
+        {channels.length > 0 && (
+          <Button
+            size="sm"
+            variant="primary"
+            type="button"
+            onClick={handleBulkScrap}
+            disabled={isScrapingInProgress}
+            className={css({ display: 'flex', alignItems: 'center', gap: '0.25rem' })}
+          >
+            <MdDownload />
+            {isScrapingInProgress ? '스크랩 중...' : '일괄 스크랩'}
+          </Button>
+        )}
+      </div>
       <ul className={css({ listStyle: 'none', p: 0 })}>
         {channels.length === 0 ? (
           <ChannelEmptyState />
