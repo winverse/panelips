@@ -1,4 +1,4 @@
-export interface YouTubeThumbnail {
+export type YouTubeThumbnail = {
   default: {
     url: string;
   };
@@ -8,4 +8,9 @@ export interface YouTubeThumbnail {
   high: {
     url: string;
   };
-}
+};
+
+export type GetNewVideosType = {
+  title: string;
+  url: string;
+};

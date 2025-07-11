@@ -1,5 +1,6 @@
 import { ONE_HOUR_AS_S, ONE_MINUTE_AS_S } from '@constants/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
+import { GetNewVideosType } from '@modules/sns/youtube/youtube.interface.js';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
@@ -24,7 +25,7 @@ export class YoutubeService {
     });
   }
 
-  public async getNewVideos(url: string): Promise<string[]> {
+  public async getNewVideos(url: string): Promise<GetNewVideosType[]> {
     const channelId = await this.getChannelId(url);
     this.logger.log(`Searching new videos for channel: ${channelId}`);
 
@@ -78,14 +79,19 @@ export class YoutubeService {
     const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
     console.log('existVideos', existVideos);
 
+    const titles = items.map((item) => ({ id: item.id?.videoId, title: item.snippet?.title }));
     const processedURL = existVideos.map((video) => video.url);
-    const videoUrls = filteredVideos
-      .map((video) => video.id && `https://www.youtube.com/watch?v=${video.id}`)
-      .filter((videoUrl): videoUrl is string => !!videoUrl)
-      .filter((videoUrl) => !processedURL.includes(videoUrl));
 
-    this.logger.log(`Found ${videoUrls.length} new videos (under 1h 30m) from URL: ${url}`);
-    return videoUrls;
+    const videoInfo = filteredVideos
+      .map((video) => ({
+        url: video.id && `https://www.youtube.com/watch?v=${video.id}`,
+        title: titles.find((title) => title.id === video.id)?.title,
+      }))
+      .filter(({ title, url }) => !!title && !!url)
+      .filter((videoUrl): videoUrl is GetNewVideosType => !processedURL.includes(videoUrl.url!));
+
+    this.logger.log(`Found ${videoInfo.length} new videos (under 1h 30m) from URL: ${url}`);
+    return videoInfo;
   }
 
   private async getChannelId(url: string): Promise<string> {
