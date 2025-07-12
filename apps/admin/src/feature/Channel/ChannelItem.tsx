@@ -1,20 +1,24 @@
 import { Button } from '@src/components/Button';
+import { Spinner } from '@src/components/Spinner';
 import { useTooltip } from '@src/hooks/useTooltip';
 import { useTRPC } from '@src/lib/trpc';
+import { addScrapChannelAtom, removeChannelAtom, ScrapChannel } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useAtom } from 'jotai';
 import { MdDownload, MdMailOutline, MdMovie } from 'react-icons/md';
+import { toast } from 'react-toastify';
 
 type ChannelItemProps = {
   channel: string;
-  removeItem: (channel: string) => void;
 };
 
-export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
-  const [showVideoList, setShowVideoList] = useState(false);
+export function ChannelItem({ channel }: ChannelItemProps) {
   const trpc = useTRPC();
+  const [_, addScrapChannel] = useAtom(addScrapChannelAtom);
+
+  const [, removeChannel] = useAtom(removeChannelAtom);
   const { isPending, data } = useQuery(
     trpc.youtube.getNewVideo.queryOptions({
       url: channel,
@@ -26,6 +30,11 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
     position: 'top',
   });
 
+  const handelAddScrapChannel = (channels: ScrapChannel[]) => {
+    addScrapChannel(channels);
+    toast.success('스크랩 대상에 추가 되었습니다.');
+  };
+
   return (
     <div className={css({ mb: '0.5rem' })}>
       <li key={channel} className={flex({ direction: 'row', alignItems: 'center' })}>
@@ -34,12 +43,34 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
           variant="outline"
           key={channel}
           type="button"
-          onClick={() => removeItem(channel)}
+          onClick={() => removeChannel(channel)}
           {...tooltip.tooltipProps}
         >
           {decodeURIComponent(channel)}
         </Button>
         <tooltip.TooltipComponent />
+        {isPending && (
+          <div
+            className={css({
+              ml: '0.5rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              px: '0.75rem',
+              py: '0.375rem',
+              bg: 'background.secondary',
+              color: 'text.secondary',
+              border: '1px solid',
+              borderColor: 'border.primary',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: '500',
+            })}
+          >
+            <Spinner size="sm" />
+            <span>영상 정보 로딩중...</span>
+          </div>
+        )}
         {data && (
           <div
             className={css({ ml: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' })}
@@ -73,7 +104,7 @@ export function ChannelItem({ channel, removeItem }: ChannelItemProps) {
               size="sm"
               variant="primary"
               type="button"
-              onClick={() => setShowVideoList(!showVideoList)}
+              onClick={() => handelAddScrapChannel(data)}
               className={css({ display: 'flex', alignItems: 'center', gap: '0.25rem' })}
             >
               <MdDownload />

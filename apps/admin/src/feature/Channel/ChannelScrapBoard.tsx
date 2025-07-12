@@ -1,29 +1,30 @@
+import { scrapTargetChannelsAtom } from '@src/store';
 import { css } from '@styled-system/css';
+import { useAtom } from 'jotai';
 
-type ChannelScrapBoardProps = {
-  youtubeInfo: {
-    title: string;
-    thumbnail: string;
-  }[];
-};
+type ChannelScrapBoardProps = {};
 
-export function ChannelScrapBoard({ youtubeInfo }: ChannelScrapBoardProps) {
+export function ChannelScrapBoard() {
+  const [channls] = useAtom(scrapTargetChannelsAtom);
   return (
     <div
       className={css({
         display: 'flex',
-        justifyContent: 'left',
-        alignItems: 'center',
+        alignItems: 'left',
         flexDir: 'column',
-        w: '50%',
+        w: '60%',
       })}
     >
-      {youtubeInfo.length === 0 && '스크랩 대상이 없습니다'}
-      {youtubeInfo.length !== 0 && (
+      {channls.length === 0 && '스크랩 대상이 없습니다'}
+      {channls.length !== 0 && (
         <div>
           <ul>
-            {youtubeInfo.map((info) => (
-              <li key={info.title}>{info.title}</li>
+            {channls.map((info) => (
+              <li key={info.title}>
+                {info.title}
+                {info.thumbnail}
+                {info.url}
+              </li>
             ))}
           </ul>
         </div>

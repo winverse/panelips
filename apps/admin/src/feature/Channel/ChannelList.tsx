@@ -6,10 +6,9 @@ import { flex } from '@styled-system/patterns';
 
 type ChannelListProps = {
   channels: string[];
-  removeItem: (url: string) => void;
 };
 
-export function ChannelList({ channels, removeItem: handleRemoveChannel }: ChannelListProps) {
+export function ChannelList({ channels }: ChannelListProps) {
   return (
     <div
       className={css({
@@ -17,7 +16,7 @@ export function ChannelList({ channels, removeItem: handleRemoveChannel }: Chann
         justifyContent: 'left',
         alignItems: 'center',
         flexDir: 'column',
-        w: '50%',
+        w: '40%',
         border: '1px solid',
         borderColor: 'border.primary',
         borderRadius: '8px',
@@ -42,7 +41,7 @@ export function ChannelList({ channels, removeItem: handleRemoveChannel }: Chann
         >
           저장된 채널
         </h3>
-        <Button size="md" variant="primary" type="button" onClick={() => handleRemoveChannel('')}>
+        <Button size="md" variant="primary" type="button">
           일괄 스크랩
         </Button>
       </div>
@@ -50,9 +49,7 @@ export function ChannelList({ channels, removeItem: handleRemoveChannel }: Chann
         {channels.length === 0 ? (
           <ChannelEmptyState />
         ) : (
-          channels.map((channel) => (
-            <ChannelItem key={channel} removeItem={handleRemoveChannel} channel={channel} />
-          ))
+          channels.map((channel) => <ChannelItem key={channel} channel={channel} />)
         )}
       </ul>
     </div>

@@ -4,14 +4,7 @@ import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
 import { ChannelList } from '@src/feature/Channel/ChannelList';
 import { ChannelScrapBoard } from '@src/feature/Channel/ChannelScrapBoard';
-import { useTRPC } from '@src/lib/trpc';
-import {
-  addChannelAtom,
-  channelsAtom,
-  channelUrlAtom,
-  isScrapingInProgressAtom,
-  removeChannelAtom,
-} from '@src/store';
+import { addChannelAtom, channelsAtom, channelUrlAtom } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useAtom } from 'jotai';
@@ -21,96 +14,26 @@ import { toast } from 'react-toastify';
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
   const [channels] = useAtom(channelsAtom);
-  const [_isScrapingInProgress, setIsScrapingInProgress] = useAtom(isScrapingInProgressAtom);
   const [, addChannel] = useAtom(addChannelAtom);
-  const [, removeChannel] = useAtom(removeChannelAtom);
 
-  const _trpc = useTRPC();
-
-  const _handleBulkScrap = () => {
-    if (channels.length === 0) {
-      toast.warning('스크랩할 채널이 없습니다.');
-      return;
+  const handleAddChannel = (url: string) => {
+    const { success, message } = addChannel(url);
+    if (success) {
+      toast.success(message);
+      setChannelUrl('');
+    } else {
+      toast.warning(message);
     }
-
-    const confirmed = window.confirm(
-      `${channels.length}개의 채널을 일괄 스크랩하시겠습니까?\n\n이 작업은 시간이 걸릴 수 있습니다.`,
-    );
-
-    if (confirmed) {
-      setIsScrapingInProgress(true);
-    }
-  };
-
-  const handleRemoveChannel = (url: string) => {
-    removeChannel(url);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      const inputUrl = event.currentTarget.value.trim();
-      if (!inputUrl) {
-        toast.error('URL을 입력해주세요.');
-        return;
-      }
-
-      if (channels.includes(inputUrl)) {
-        toast.warning('이미 추가된 채널입니다.');
-        return;
-      }
-
-      const success = handleAddChannelUrl(inputUrl);
-      if (success) {
-        setChannelUrl('');
-      }
+      handleAddChannel(event.currentTarget.value);
     }
   };
 
-  const handleAddButton = () => {
-    if (!channelUrl.trim()) {
-      toast.error('URL을 입력해주세요.');
-      return;
-    }
-
-    if (channels.includes(channelUrl)) {
-      toast.warning('이미 추가된 채널입니다.');
-      return;
-    }
-
-    const success = handleAddChannelUrl(channelUrl);
-    if (success) {
-      setChannelUrl('');
-    }
-  };
-
-  const handleAddChannelUrl = (url: string): boolean => {
-    try {
-      const parseUrl = new URL(url);
-      const { origin, pathname } = parseUrl;
-
-      if (!origin.includes('youtube.com') && !origin.includes('youtu.be')) {
-        toast.error('유튜브 URL만 입력 가능합니다.');
-        return false;
-      }
-
-      const channelId = pathname.split('/')[1];
-      const normalizedUrl = decodeURIComponent(`${origin}/${channelId}`);
-
-      console.log('normalizedUrl', normalizedUrl);
-      if (channels.includes(normalizedUrl)) {
-        toast.warning('이미 추가된 채널입니다.');
-        return false;
-      }
-
-      const success = addChannel(normalizedUrl);
-      if (success) {
-        toast.success('채널이 성공적으로 추가되었습니다.');
-      }
-      return success;
-    } catch (_error) {
-      toast.error('올바른 URL 형식이 아닙니다. 유효한 유튜브 채널 URL을 입력해주세요.');
-      return false;
-    }
+  const handleAddButtonClick = () => {
+    handleAddChannel(channelUrl);
   };
 
   return (
@@ -144,7 +67,7 @@ export function ChannelManager() {
           variant="outline"
           style={{ width: '400px' }}
         />
-        <Button size="md" variant="primary" type="button" onClick={handleAddButton}>
+        <Button size="md" variant="primary" type="button" onClick={handleAddButtonClick}>
           추가
         </Button>
       </div>
@@ -152,13 +75,13 @@ export function ChannelManager() {
       <div
         className={flex({
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-top',
           mb: '0.5rem',
           gap: '1rem',
         })}
       >
-        <ChannelList channels={channels} removeItem={handleRemoveChannel} />
-        <ChannelScrapBoard youtubeInfo={[]} />
+        <ChannelList channels={channels} />
+        <ChannelScrapBoard />
       </div>
     </div>
   );
