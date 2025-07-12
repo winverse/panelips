@@ -17,7 +17,7 @@ export function GoogleLoginForm() {
   });
   const [message, setMessage] = useState('');
 
-  const { isPending, mutateAsync } = useMutation(trpc.login.googleLogin.mutationOptions());
+  const { isPending, mutateAsync } = useMutation(trpc.automation.google.login.mutationOptions());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

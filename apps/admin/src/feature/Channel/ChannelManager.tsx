@@ -21,13 +21,13 @@ import { toast } from 'react-toastify';
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
   const [channels] = useAtom(channelsAtom);
-  const [isScrapingInProgress, setIsScrapingInProgress] = useAtom(isScrapingInProgressAtom);
+  const [_isScrapingInProgress, setIsScrapingInProgress] = useAtom(isScrapingInProgressAtom);
   const [, addChannel] = useAtom(addChannelAtom);
   const [, removeChannel] = useAtom(removeChannelAtom);
 
-  const trpc = useTRPC();
+  const _trpc = useTRPC();
 
-  const handleBulkScrap = () => {
+  const _handleBulkScrap = () => {
     if (channels.length === 0) {
       toast.warning('스크랩할 채널이 없습니다.');
       return;
@@ -107,7 +107,7 @@ export function ChannelManager() {
         toast.success('채널이 성공적으로 추가되었습니다.');
       }
       return success;
-    } catch (error) {
+    } catch (_error) {
       toast.error('올바른 URL 형식이 아닙니다. 유효한 유튜브 채널 URL을 입력해주세요.');
       return false;
     }

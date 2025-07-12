@@ -23,6 +23,6 @@ export const removeChannelAtom = atom(null, (get, set, url: string) => {
   );
 });
 
-export const clearAllChannelsAtom = atom(null, (get, set) => {
+export const clearAllChannelsAtom = atom(null, (_get, set) => {
   set(channelsAtom, []);
 });

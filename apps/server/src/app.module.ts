@@ -1,6 +1,5 @@
-import { LoginModule } from '@modules/login/index.js';
-import { ScrapModule } from '@modules/scrap/index.js';
-import { YoutubeModule } from '@modules/sns/youtube/index.js';
+import { AutomationModule } from '@modules/automation/index.js';
+import { YoutubeModule } from '@modules/integrations/youtube/index.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ConfigModule } from '@packages/config';
@@ -18,8 +17,7 @@ import { TrpcModule } from './trpc/trpc.module.js';
     ConfigModule,
     CoreModule,
     TrpcModule,
-    ScrapModule,
-    LoginModule,
+    AutomationModule,
     YoutubeModule,
   ],
   providers: [
