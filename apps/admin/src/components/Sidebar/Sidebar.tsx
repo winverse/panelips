@@ -1,6 +1,14 @@
 import { css } from '@styled-system/css';
 import Link from 'next/link';
-import { MdArrowForward, MdBolt, MdDashboard, MdSearch, MdTv, MdPeople, MdInsights } from 'react-icons/md';
+import {
+  MdArrowForward,
+  MdBolt,
+  MdDashboard,
+  MdInsights,
+  MdPeople,
+  MdSearch,
+  MdTv,
+} from 'react-icons/md';
 
 export function Sidebar() {
   const regularMenuItems = [

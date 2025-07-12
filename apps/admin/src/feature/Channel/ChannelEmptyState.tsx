@@ -1,5 +1,5 @@
 import { css } from '@styled-system/css';
-import { MdTv, MdLightbulb } from 'react-icons/md';
+import { MdLightbulb, MdTv } from 'react-icons/md';
 
 export function ChannelEmptyState() {
   return (
@@ -52,8 +52,8 @@ export function ChannelEmptyState() {
           lineHeight: 1.5,
         })}
       >
-        위의 입력창에 유튜브 채널 URL을 입력하여<br />
-        첫 번째 채널을 추가해보세요
+        위의 입력창에 유튜브 채널 URL을 입력하여
+        <br />첫 번째 채널을 추가해보세요
       </p>
       <div
         className={css({
@@ -69,7 +69,9 @@ export function ChannelEmptyState() {
           fontWeight: '500',
         })}
       >
-        <span><MdLightbulb /></span>
+        <span>
+          <MdLightbulb />
+        </span>
         <span>예: https://www.youtube.com/@channelname</span>
       </div>
     </li>

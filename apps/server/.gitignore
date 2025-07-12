@@ -35,6 +35,6 @@ Thumbs.db
 packages/prisma/generated
 
 # clawler
-~
 storage
-playwright/cookie.json
+playwright/**
+!playwright/.gitkeep

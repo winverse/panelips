@@ -19,12 +19,18 @@ export function createLoginRouter(app: INestApplication) {
       .output(
         z.object({
           success: z.boolean(),
+          error: z.string().optional(),
         }),
       )
       .mutation(async ({ input }) => {
         const { email, password } = input;
-        await loginService.googleLogin(email, password);
-        return { success: true };
+        try {
+          await loginService.googleLogin(email, password);
+          return { success: true };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'An unknown error occurred';
+          return { success: false, error: message };
+        }
       }),
   });
 }

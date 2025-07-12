@@ -23,19 +23,20 @@ export function useTooltip({ content, position = 'top' }: UseTooltipProps): UseT
     'data-tooltip-content': content,
   };
 
-  const TooltipComponent = () => React.createElement(Tooltip, {
-    id: tooltipId,
-    place: position,
-    style: {
-      backgroundColor: 'var(--colors-neutral-800)',
-      color: 'var(--colors-white)',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      borderRadius: '6px',
-      padding: '0.375rem 0.75rem',
-      zIndex: 1000,
-    }
-  });
+  const TooltipComponent = () =>
+    React.createElement(Tooltip, {
+      id: tooltipId,
+      place: position,
+      style: {
+        backgroundColor: 'var(--colors-neutral-800)',
+        color: 'var(--colors-white)',
+        fontSize: '0.75rem',
+        fontWeight: '500',
+        borderRadius: '6px',
+        padding: '0.375rem 0.75rem',
+        zIndex: 1000,
+      },
+    });
 
   return {
     tooltipId,
