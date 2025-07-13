@@ -10,6 +10,7 @@ import { Page } from 'playwright';
 @Injectable()
 export class YoutubeChannelService {
   private readonly logger = new Logger(YoutubeChannelService.name);
+  private readonly USER_DATA_DIR = path.resolve(process.cwd(), 'playwright', 'user-data');
   private readonly DEBUG_PATH = path.resolve(process.cwd(), 'playwright', 'debug');
 
   constructor(private readonly youtubeService: YoutubeService) {}
@@ -18,19 +19,16 @@ export class YoutubeChannelService {
     title,
     url,
     description,
-    email = 'pubic.winverse@gmail.com',
-    password = '123123',
-  }: YoutubeChannelScrapArgs) {
+  }: Omit<YoutubeChannelScrapArgs, 'email' | 'password'>) {
     const prompt = createYoutubeChannelScrapPrompt({ title, description, url });
 
-    this.logger.log('🚀 Starting unified YouTube channel scraping process...');
+    this.logger.log('🚀 Starting scraping process with persistent user profile...');
+    this.logger.log(`👤 Using user data directory: ${this.USER_DATA_DIR}`);
 
     const requestQueue = await RequestQueue.open();
-
     await requestQueue.addRequest({
-      url: 'https://accounts.google.com/signin',
-      label: 'LOGIN',
-      userData: { prompt, email, password },
+      url: 'https://myaccount.google.com/',
+      userData: { prompt },
       retryCount: 1,
       maxRetries: 1,
     });
@@ -46,20 +44,15 @@ export class YoutubeChannelService {
             locales: ['ko-KR', 'ko'],
             browsers: ['chrome'],
             devices: ['desktop'],
-            screen: {
-              maxWidth: 1920,
-              maxHeight: 1080,
-              minHeight: 1920,
-              minWidth: 1080,
-            },
           },
         },
       },
       launchContext: {
         useChrome: true,
+        userDataDir: this.USER_DATA_DIR,
         launchOptions: {
           channel: 'chrome',
-          headless: false,
+          headless: false, // Set to true for production runs
           args: [
             '--proxy-server=direct://',
             '--proxy-bypass-list=*',
@@ -68,14 +61,10 @@ export class YoutubeChannelService {
         },
       },
 
-      requestHandler: async ({ page, request, log, crawler }) => {
-        log.info(`[Processing started] ${request.url} - Label: ${request.label}`);
-
-        if (request.label === 'LOGIN') {
-          await this.handleLogin(page, request.userData, crawler);
-        } else if (request.label === 'GEMINI_SCRAPE') {
-          await this.handleGeminiScrape(page, request.userData);
-        }
+      // The handler now executes all logic sequentially for the single request.
+      requestHandler: async ({ page, request, log }) => {
+        log.info(`[Processing started] ${request.url}`);
+        await this.handleGeminiScrape(page, request.userData);
       },
 
       failedRequestHandler: async ({ page, request, error }) => {
@@ -88,298 +77,158 @@ export class YoutubeChannelService {
     await crawler.run();
   }
 
-  private async handleLogin(page: Page, userData: Dictionary, crawler: PlaywrightCrawler) {
-    this.logger.log('➡️ Starting login process...');
-    const { email, password } = userData;
-
-    try {
-      await this.performLogin(page, email, password);
-
-      this.logger.log('➡️ Proceeding to Gemini...');
-      await page.goto('https://gemini.google.com/app', { waitUntil: 'domcontentloaded' });
-
-      const isLoggedInOnGemini = await this.checkGoogleLoginStatus(page);
-      if (!isLoggedInOnGemini) {
-        await this.saveDebugInfo(page, 'gemini-login-failed-after-redirect');
-        throw new Error('Failed to maintain login status on Gemini page.');
-      }
-
-      this.logger.log('✅ Successfully logged in and navigated to Gemini.');
-
-      await crawler.addRequests([
-        {
-          url: page.url(),
-          label: 'GEMINI_SCRAPE',
-          userData,
-          keepUrlFragment: true,
-        },
-      ]);
-    } catch (error) {
-      this.logger.error('❌ Login or navigation to Gemini failed:', error);
-      await this.saveDebugInfo(page, 'login-or-gemini-nav-failed');
-      throw error;
-    }
-  }
-
   private async handleGeminiScrape(page: Page, userData: Dictionary) {
     const { prompt } = userData;
 
     this.logger.log('🤖 Starting Gemini prompt processing...');
-    await this.saveDebugInfo(page, 'gemini-scrape-start');
 
     try {
+      const isLoggedIn = await this.checkGoogleLoginStatus(page);
+      if (!isLoggedIn) {
+        await this.saveDebugInfo(page, 'login-check-failed');
+        this.logger.error('================================================================');
+        this.logger.error('❌ LOGIN NOT DETECTED! ❌');
+        this.logger.error('The persistent profile is not logged in.');
+        this.logger.error(
+          'Please run the `googleLogin` service first to complete the one-time manual login.',
+        );
+        this.logger.error('================================================================');
+        await page.close();
+      }
+
+      this.logger.log('✅ Login status confirmed.');
       await page.waitForTimeout(3000);
 
-      const textInput = page.locator('textarea, [contenteditable="true"]').first();
-      await textInput.waitFor({ state: 'visible', timeout: 10000 });
+      await page.goto('https://gemini.google.com/app', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(3000);
 
-      await textInput.clear();
-      await textInput.fill(prompt);
-
-      this.logger.log('✅ Prompt entered successfully');
-
-      const submitButton = page
-        .locator('button[type="submit"], button:has-text("Send"), button:has-text("전송")')
-        .first();
-      if (await submitButton.isVisible()) {
-        await submitButton.click();
-        this.logger.log('🚀 Prompt submitted to Gemini');
-
-        await page.waitForTimeout(5000);
-
-        await page
-          .waitForSelector('[data-response-complete="true"], .response-complete', {
-            timeout: 60000,
-          })
-          .catch(() => {
-            this.logger.warn('Response completion indicator not found, continuing...');
-          });
-
-        this.logger.log('✅ Gemini processing completed');
-      } else {
-        this.logger.warn('Submit button not found');
-      }
+      await this.inputPromptToGemini(page, prompt);
     } catch (error) {
       this.logger.error('Error during Gemini scraping:', error);
-      await this.saveDebugInfo(page, 'gemini-scrape-failed');
+      // Avoid saving debug info again if it was already saved for login failure.
+      if (error.message !== 'Persistent profile is not logged in.') {
+        await this.saveDebugInfo(page, 'gemini-scrape-failed');
+      }
       throw error;
     }
   }
 
-  private async performLogin(page: Page, email: string, password: string): Promise<void> {
-    this.logger.log('📝 Performing login steps...');
-
-    const emailInput = page.getByLabel('Email or phone');
-    const accountChooserHeader = page.locator(
-      'h1:has-text("Choose an account"), h1:has-text("계정을 선택하세요")',
-    );
-
-    this.logger.log('🕵️ Determining login flow (Email, Account Chooser, or Passkey)...');
-
-    await Promise.race([
-      emailInput.waitFor({ state: 'visible', timeout: 15000 }),
-      accountChooserHeader.waitFor({ state: 'visible', timeout: 15000 }),
-    ]).catch(() => {
-      this.logger.log(
-        'Neither email input nor account chooser found, assuming Passkey/manual flow.',
-      );
-    });
-
-    if (await emailInput.isVisible()) {
-      this.logger.log('📧 Email input is visible. Proceeding with automated login...');
-      await emailInput.fill(email);
-      await page.getByRole('button', { name: 'Next' }).click();
-
-      this.logger.log('🔑 Waiting for password input...');
-      const passwordInput = page.getByLabel('Enter your password', { exact: true });
-      await passwordInput.waitFor({ state: 'visible', timeout: 10000 });
-
-      this.logger.log('Entering password.');
-      await passwordInput.fill(password);
-      await page.getByRole('button', { name: 'Next' }).click();
-    } else if (await accountChooserHeader.isVisible()) {
-      this.logger.log('👤 Account selection screen detected.');
-      this.logger.log('👉 PLEASE CLICK ON YOUR ACCOUNT IN THE BROWSER WINDOW. 👈');
-    } else {
-      this.logger.log('🤷 Assuming Passkey/QR code screen is present.');
-      this.logger.log('👉 PLEASE COMPLETE THE LOGIN MANUALLY IN THE BROWSER WINDOW. 👈');
-    }
-
-    this.logger.log('⏳ Waiting for a sign of successful login... (Max 2 minutes)');
-
-    const loggedInIndicator = page.locator(
-      [
-        '[aria-label*="Google Account"]',
-        '[aria-label*="Google 계정"]',
-        'img[alt*="profile"]',
-        'img[alt*="프로필"]',
-        '[data-testid="user-menu"]',
-      ].join(', '),
-    );
-
-    await loggedInIndicator.first().waitFor({ state: 'visible', timeout: 120000 });
-
-    this.logger.log('✅ Login successful.');
-  }
-
   private async checkGoogleLoginStatus(page: Page): Promise<boolean> {
     try {
-      this.logger.log('🔍 Checking Google login status on Gemini page...');
-
       const currentUrl = page.url();
-      this.logger.log(`Current URL: ${currentUrl}`);
+      return currentUrl.includes('myaccount.google.com');
+    } catch (_error) {
+      this.logger.log('Could not find logged-in user elements. Assuming not logged in.');
 
-      // Wait for page to fully load
-      await page.waitForLoadState('domcontentloaded');
+      return false;
+    }
+  }
+
+  private async inputPromptToGemini(page: Page, prompt: string): Promise<void> {
+    try {
+      this.logger.log('📝 Looking for Gemini input area...');
+      const inputSelector =
+        'div.ql-editor.textarea.new-input-ui[data-placeholder="Gemini에게 물어보기"][role="textbox"][contenteditable="true"]';
+
+      // 요소가 나타날 때까지 기다립니다.
+      await page.waitForSelector(inputSelector, { state: 'visible', timeout: 10000 });
+      this.logger.log('✅ Gemini 입력 영역을 찾았습니다.');
+
+      await page.fill(inputSelector, prompt);
+      this.logger.log('✍️ 프롬프트를 Gemini 입력 영역에 성공적으로 입력했습니다.');
       await page.waitForTimeout(3000);
 
-      // Method 1: Check for login/sign-in buttons (if visible, user is NOT logged in)
-      const loginButtonSelectors = [
-        'button:has-text("Sign in")',
-        'button:has-text("로그인")',
-        'a:has-text("Sign in")',
-        'a:has-text("로그인")',
-        '[data-testid="sign-in"]',
-        '.sign-in-button',
-        'button[aria-label*="Sign in"]',
-        'button[aria-label*="로그인"]',
-      ];
+      await page.keyboard.press('Enter');
 
-      for (const selector of loginButtonSelectors) {
-        try {
-          const loginButton = page.locator(selector);
-          if (await loginButton.isVisible({ timeout: 2000 })) {
-            this.logger.log(`❌ Found login button (${selector}), user is NOT logged in`);
-            return false;
-          }
-        } catch {
-          // Continue checking other selectors
-        }
-      }
+      // --- Gemini 응답 기다리기 시작 ---
+      this.logger.log('⏳ Gemini의 응답을 기다리는 중입니다...');
 
-      // Method 2: Check for user profile indicators (if visible, user IS logged in)
-      const profileIndicators = [
-        '[data-testid="user-menu"]',
-        '[aria-label*="Account"]',
-        '[aria-label*="계정"]',
-        'img[alt*="profile"]',
-        'img[alt*="프로필"]',
-        '.user-avatar',
-        '.profile-image',
-        '[data-testid="profile"]',
-        'button[aria-label*="Google Account"]',
-        'button[aria-label*="Google 계정"]',
-      ];
+      // 1. Lottie 애니메이션의 data-test-lottie-animation-status가 "completed"로 변경될 때까지 기다립니다.
+      // 이 셀렉터는 응답을 생성하는 아바타의 Lottie 애니메이션 요소를 가리킵니다.
+      const lottieAnimationCompletedSelector =
+        'div.avatar_primary_animation.is-gpi-avatar[data-test-lottie-animation-status="completed"]';
 
-      for (const selector of profileIndicators) {
-        try {
-          const profileElement = page.locator(selector);
-          if (await profileElement.isVisible({ timeout: 2000 })) {
-            this.logger.log(`✅ Found user profile indicator (${selector}), user is logged in`);
-            return true;
-          }
-        } catch {
-          // Continue checking other selectors
-        }
-      }
-
-      // Method 3: Check for Gemini-specific logged-in elements
-      const geminiLoggedInSelectors = [
-        'textarea[placeholder*="Enter a prompt"]',
-        'textarea[placeholder*="프롬프트"]',
-        '[contenteditable="true"]',
-        'button[aria-label*="Send"]',
-        'button[aria-label*="전송"]',
-        '.chat-input',
-        '.prompt-input',
-      ];
-
-      for (const selector of geminiLoggedInSelectors) {
-        try {
-          const geminiElement = page.locator(selector);
-          if (await geminiElement.isVisible({ timeout: 2000 })) {
-            this.logger.log(`✅ Found Gemini interface element (${selector}), likely logged in`);
-            return true;
-          }
-        } catch {
-          // Continue checking other selectors
-        }
-      }
-
-      // Method 4: Try to navigate to Google account page to verify login
+      this.logger.log(`🔍 Lottie 애니메이션이 'completed' 상태가 될 때까지 기다리는 중입니다...`);
       try {
-        this.logger.log('🔄 Performing additional login verification via account page...');
-        const _originalUrl = page.url();
-
-        // Open new tab to check account page
-        const context = page.context();
-        const accountPage = await context.newPage();
-
-        try {
-          await accountPage.goto('https://myaccount.google.com/', {
-            waitUntil: 'domcontentloaded',
-            timeout: 10000,
-          });
-
-          // Check if we're redirected to login page
-          const accountPageUrl = accountPage.url();
-          if (
-            accountPageUrl.includes('accounts.google.com/signin') ||
-            accountPageUrl.includes('accounts.google.com/oauth')
-          ) {
-            this.logger.log('❌ Redirected to login page, user is not logged in');
-            await accountPage.close();
-            return false;
-          }
-
-          // Look for account page elements
-          const accountPageElement = accountPage.getByRole('link', { name: /Google Account: .*/ });
-          const isOnAccountPage = await accountPageElement
-            .isVisible({ timeout: 5000 })
-            .catch(() => false);
-
-          await accountPage.close();
-
-          if (isOnAccountPage) {
-            this.logger.log('✅ Successfully verified login status via account page');
-            return true;
-          }
-        } catch (error) {
-          this.logger.warn('⚠️ Could not verify login via account page:', (error as Error).message);
-          await accountPage.close().catch(() => {});
-        }
+        await page.waitForSelector(lottieAnimationCompletedSelector, {
+          state: 'attached',
+          timeout: 60000,
+        }); // 1분 대기
+        this.logger.log('✅ Lottie 애니메이션 상태가 "completed"로 변경되었습니다.');
       } catch (error) {
-        this.logger.warn('⚠️ Could not create new page for verification:', (error as Error).message);
-      }
-
-      // Method 5: Check cookies for authentication tokens
-      try {
-        const cookies = await page.context().cookies();
-        const authCookies = cookies.filter(
-          (cookie) =>
-            cookie.name.includes('SID') ||
-            cookie.name.includes('SSID') ||
-            cookie.name.includes('APISID') ||
-            cookie.name.includes('SAPISID') ||
-            cookie.name.includes('PSID'),
+        this.logger.warn(
+          '⚠️ Lottie 애니메이션이 시간 내에 "completed" 상태가 되지 않았습니다. 응답이 없거나 셀렉터가 잘못되었을 수 있습니다.',
+          error,
         );
-
-        if (authCookies.length > 0) {
-          this.logger.log(
-            `✅ Found ${authCookies.length} authentication cookies, likely logged in`,
-          );
-          return true;
-        }
-      } catch (error) {
-        this.logger.warn('⚠️ Could not check cookies:', (error as Error).message);
       }
 
-      // Default to not logged in if we can't determine the status
-      this.logger.log('❓ Could not determine login status definitively, assuming not logged in');
-      return false;
+      // 2. 이제 더 정확한 상위 컨테이너 셀렉터를 사용합니다.
+      // id="chat-history"를 가진 div와 data-test-id="chat-history-container"를 가진 infinite-scroller를 함께 사용합니다.
+      const chatHistoryContainerSelector =
+        '#chat-history infinite-scroller[data-test-id="chat-history-container"]';
+
+      // 그 안에 있는 가장 마지막 conversation-container를 찾습니다.
+      const lastConversationContainerSelector = `${chatHistoryContainerSelector} div.conversation-container.message-actions-hover-boundary:last-child`;
+
+      // 최종 응답 텍스트가 들어가는 요소.
+      // 스크린샷을 보니 <model-response> 안에 <message-content class="model-response-text">가 있습니다.
+      const lastModelResponseTextSelector = `${lastConversationContainerSelector} model-response message-content.model-response-text`;
+
+      const completionKeyword = '"response": "completed"';
+
+      this.logger.log(
+        `🔍 '${completionKeyword}' 문자열이 최신 응답에 나타날 때까지 최종 확인 중입니다...`,
+      );
+
+      let isCompletedWithKeyword = false;
+      const startTimeKeywordCheck = Date.now();
+      const timeoutKeywordCheck = 120000; // 추가 2분 대기 (응답이 길 수 있으므로 충분히)
+
+      while (!isCompletedWithKeyword && Date.now() - startTimeKeywordCheck < timeoutKeywordCheck) {
+        // 마지막 모델 응답 텍스트 요소를 찾습니다.
+        const lastModelResponseElement = await page.$(lastModelResponseTextSelector);
+        if (lastModelResponseElement) {
+          // 해당 요소의 텍스트 콘텐츠를 가져옵니다.
+          const pageContent = await lastModelResponseElement.textContent();
+          if (pageContent?.includes(completionKeyword)) {
+            isCompletedWithKeyword = true;
+            this.logger.log(`🎉 '${completionKeyword}' 문자열을 최신 응답에서 최종 확인했습니다!`);
+          } else {
+            this.logger.log(
+              '🤔 최신 응답에 최종 키워드가 아직 나타나지 않았습니다. 잠시 후 다시 확인합니다...',
+            );
+            await page.waitForTimeout(3000); // 3초마다 확인
+          }
+        } else {
+          this.logger.log(
+            '🤔 최신 모델 응답 텍스트 컨테이너를 찾을 수 없습니다. 잠시 후 다시 확인합니다...',
+          );
+          await page.waitForTimeout(3000); // 3초마다 확인
+        }
+      }
+
+      if (!isCompletedWithKeyword) {
+        this.logger.error(
+          `❌ 시간 초과: '${completionKeyword}' 문자열이 추가 ${timeoutKeywordCheck / 1000}초 내에 최신 응답에 나타나지 않았습니다.`,
+        );
+        throw new Error('Gemini 응답 완료 키워드 최종 확인 시간 초과');
+      }
+
+      const geminiResponseText = await page.$eval(lastModelResponseTextSelector, (el) =>
+        el.textContent?.trim(),
+      );
+
+      if (!geminiResponseText) {
+        throw new Error('응답을 찾을 수 없습니다.');
+      }
+
+      const rawString = geminiResponseText.replace('JSON', '');
+      const rawJSON = JSON.parse(rawString);
+      console.log('text', rawJSON);
+
+      await page.waitForTimeout(90000000);
     } catch (error) {
-      this.logger.error('❌ Error checking login status:', (error as Error).message);
-      return false;
+      this.logger.error('Gemini input area not found:', error);
     }
   }
 
@@ -388,21 +237,12 @@ export class YoutubeChannelService {
     await fs.mkdir(this.DEBUG_PATH, { recursive: true });
 
     const screenshotPath = path.join(this.DEBUG_PATH, `screenshot-${stage}-${timestamp}.png`);
-    const htmlPath = path.join(this.DEBUG_PATH, `page-${stage}-${timestamp}.html`);
 
     try {
       await page.screenshot({ path: screenshotPath, fullPage: true });
       this.logger.log(`📸 Screenshot saved to ${screenshotPath}`);
-    } catch (e) {
-      this.logger.error('Failed to save screenshot:', e);
-    }
-
-    try {
-      const html = await page.content();
-      await fs.writeFile(htmlPath, html);
-      this.logger.log(`📄 HTML content saved to ${htmlPath}`);
-    } catch (e) {
-      this.logger.error('Failed to save HTML content:', e);
+    } catch (error) {
+      this.logger.error('Failed to save screenshot:', error);
     }
   }
 }

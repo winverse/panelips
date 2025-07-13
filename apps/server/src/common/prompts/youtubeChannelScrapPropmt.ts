@@ -79,7 +79,8 @@ export function createYoutubeChannelScrapPrompt(input: YoutubeChannelScrapInput)
                 }
             ]
         }
-    ]
+    ],
+    response: "completed"
 }
 \`\`\`
 
@@ -91,7 +92,8 @@ export function createYoutubeChannelScrapPrompt(input: YoutubeChannelScrapInput)
 "youtubeVideo": null,
 "panels": null,
 "insights": null,
-"reason": "주식, 환율, 원자재 등 투자 자산과 직접 관련된 구체적인 예측이나 의견이 없다고 판단된 이유"
+"reason": "주식, 환율, 원자재 등 투자 자산과 직접 관련된 구체적인 예측이나 의견이 없다고 판단된 이유",
+response: "completed"
 }
 \`\`\`
 ---
