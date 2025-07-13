@@ -17,9 +17,10 @@ export function createYoutubeChannelRouter(app: INestApplication) {
           url: z.string(),
         }),
       )
-      .mutation(async () => {
+      .mutation(async ({ input }) => {
         try {
-          await youtubeChannelService.youtubeChannelScrap();
+          const { title, description, url } = input;
+          await youtubeChannelService.youtubeChannelScrap({ title, description, url });
           return { success: true, message: '유튜브 채널 스크랩 작업이 시작되었습니다.' };
         } catch (error) {
           console.error('유튜브 채널 스크랩 중 오류 발생:', error);
