@@ -47,9 +47,11 @@ model YoutubeVideo {
   appearances Appearances[]
   insights    Insight[]
 
-  youtubeChannelId   String               @db.ObjectId
-  channel            YoutubeChannel       @relation(fields: [youtubeChannelId], references: [id], onDelete: Cascade)
-  YoutubeVideoScript YoutubeVideoScript[]
+  youtubeChannelId String         @db.ObjectId
+  channel          YoutubeChannel @relation(fields: [youtubeChannelId], references: [id], onDelete: Cascade)
+
+  script YoutubeVideoScript? @relation("VideoScript")
+  json   YoutubeVideoJSON?   @relation("VideoJSON")
 
   @@map("youtube_videos")
 }
@@ -58,8 +60,20 @@ model YoutubeVideoScript {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
   text String
 
-  youtubeVideoId String       @db.ObjectId
-  youtubeVideo   YoutubeVideo @relation(fields: [youtubeVideoId], references: [id], onDelete: Cascade)
+  youtubeVideoId String       @unique @db.ObjectId
+  youtubeVideo   YoutubeVideo @relation("VideoScript", fields: [youtubeVideoId], references: [id], onDelete: Cascade)
+
+  @@map("youtube_video_scripts")
+}
+
+model YoutubeVideoJSON {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  rawData Json
+
+  youtubeVideoId String       @unique @db.ObjectId
+  youtubeVideo   YoutubeVideo @relation("VideoJSON", fields: [youtubeVideoId], references: [id], onDelete: Cascade)
+
+  @@map("youtube_video_json")
 }
 
 model Panel {
@@ -96,7 +110,6 @@ model Appearances {
   @@map("appearances")
 }
 
-// 인사이트/예측 정보
 model Insight {
   id               String  @id @default(auto()) @map("_id") @db.ObjectId // MongoDB 고유 ID
   statement        String
@@ -118,7 +131,6 @@ model Insight {
   @@map("insights")
 }
 
-// 인사이트 평가
 model InsightEvaluation {
   id           String           @id @default(auto()) @map("_id") @db.ObjectId
   score        Float            @default(0)
@@ -137,7 +149,7 @@ model InsightEvaluation {
 
 enum AiProcessStatus {
   PENDING
-  COMPELETED
+  COMPLETED
   FAILED
 }
 

@@ -88,7 +88,7 @@ export function ChannelScrapBoard() {
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="primary"
             onClick={handleClearAll}
             className={css({
               color: 'error.600',
