@@ -1,20 +1,30 @@
 import { Button } from '@src/components/Button';
+import { useTRPC } from '@src/lib/trpc';
 import {
   clearAllScrapTargetChannelsAtom,
   removeScrapTargetChannelAtom,
   scrapTargetChannelsAtom,
 } from '@src/store';
 import { css } from '@styled-system/css';
-import { flex } from '@styled-system/patterns'; // 새로 추가
+import { flex } from '@styled-system/patterns';
+import { useMutation } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
+import { useState } from 'react';
 import { MdVideoLibrary } from 'react-icons/md';
+import { toast } from 'react-toastify';
 import { ChannelScrapEmptyState } from './ChannelScrapEmptyState';
 import { ChannelScrapItem } from './ChannelScrapItem';
 
 export function ChannelScrapBoard() {
+  const trpc = useTRPC();
   const [channels] = useAtom(scrapTargetChannelsAtom);
   const [, removeScrapChannel] = useAtom(removeScrapTargetChannelAtom);
   const [, clearAllScrapTargetChannels] = useAtom(clearAllScrapTargetChannelsAtom);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const { mutateAsync: scrapChannel } = useMutation(
+    trpc.automation.youtubeChannel.scrap.mutationOptions(),
+  );
 
   const handleRemoveChannel = (url: string) => {
     removeScrapChannel(url);
@@ -22,6 +32,53 @@ export function ChannelScrapBoard() {
 
   const handleClearAll = () => {
     clearAllScrapTargetChannels();
+  };
+
+  const handleGeminiScraping = async () => {
+    if (channels.length === 0) {
+      toast.warning('스크랩할 채널이 없습니다.');
+      return;
+    }
+
+    setIsProcessing(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      toast.info(`${channels.length}개 채널의 Gemini 분석을 시작합니다...`);
+
+      for (const channel of channels) {
+        try {
+          const result = await scrapChannel({
+            title: channel.title,
+            description: channel.description,
+            url: channel.url,
+          });
+
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error(`채널 ${channel.title} 스크랩 실패:`, result.message);
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`채널 ${channel.title} 스크랩 중 오류:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount}개 채널의 Gemini 분석이 시작되었습니다.`);
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount}개 채널의 분석에 실패했습니다.`);
+      }
+    } catch (error) {
+      console.error('Gemini 스크랩 중 전체 오류:', error);
+      toast.error('Gemini 분석 중 오류가 발생했습니다.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (channels.length === 0) {
@@ -89,18 +146,16 @@ export function ChannelScrapBoard() {
           <Button
             size="sm"
             variant="primary"
-            onClick={handleClearAll}
+            onClick={handleGeminiScraping}
+            disabled={isProcessing || channels.length === 0}
             className={css({
-              color: 'error.600',
-              borderColor: 'error.200',
-              _hover: {
-                color: 'error.700',
-                borderColor: 'error.300',
-                bg: 'error.50',
+              _disabled: {
+                opacity: 0.6,
+                cursor: 'not-allowed',
               },
             })}
           >
-            GEMINI 요약하기
+            {isProcessing ? 'Gemini 분석 중...' : 'GEMINI 요약하기'}
           </Button>
         </div>
       </div>

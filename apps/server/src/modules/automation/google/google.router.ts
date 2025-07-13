@@ -10,22 +10,15 @@ export function createGoogleRouter(app: INestApplication) {
   return trpcService.router({
     login: trpcService.procedure
       .meta({ description: '스크래퍼 구글 로그인' })
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string(),
-        }),
-      )
       .output(
         z.object({
           success: z.boolean(),
           error: z.string().optional(),
         }),
       )
-      .mutation(async ({ input }) => {
-        const { email, password } = input;
+      .mutation(async () => {
         try {
-          await googleService.googleLogin(email, password);
+          await googleService.googleLogin();
           return { success: true };
         } catch (error) {
           const message = error instanceof Error ? error.message : 'An unknown error occurred';

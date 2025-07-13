@@ -1,16 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
-import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
+import { PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
 
 @Injectable()
 export class GoogleService {
   private readonly logger = new Logger(GoogleService.name);
-  private readonly COOKIE_PATH = path.resolve(process.cwd(), 'playwright', 'cookie.json');
   private readonly DEBUG_PATH = path.resolve(process.cwd(), 'playwright/debug');
+  private readonly USER_DATA_PATH = path.resolve(process.cwd(), 'playwright/user-data');
 
-  public async googleLogin(email: string, password: string) {
+  public async googleLogin() {
     this.logger.log('🚀 Starting scraping job based on Crawlee...');
 
     const requestQueue = await RequestQueue.open();
@@ -18,7 +18,6 @@ export class GoogleService {
     await requestQueue.addRequest({
       url: 'https://myaccount.google.com/',
       label: 'CHECK_LOGIN',
-      userData: { email, password },
       retryCount: 1,
       maxRetries: 1,
     });
@@ -45,6 +44,7 @@ export class GoogleService {
       },
       launchContext: {
         useChrome: true,
+        userDataDir: this.USER_DATA_PATH,
         launchOptions: {
           channel: 'chrome',
           headless: false,
@@ -59,14 +59,8 @@ export class GoogleService {
       requestHandler: async ({ page, request, log }) => {
         log.info(`[Processing started] ${request.url}`);
 
-        if (await this.cookieFileExists()) {
-          await this.loadCookies(page);
-          this.logger.log('🍪 Cookies loaded. Reloading page to apply session...');
-          await page.reload({ waitUntil: 'domcontentloaded' });
-        }
-
         if (request.label === 'CHECK_LOGIN') {
-          await this.handleLoginCheck(page, request.userData);
+          await this.handleLoginCheck(page);
         }
 
         await page.close();
@@ -82,11 +76,8 @@ export class GoogleService {
     await crawler.run();
   }
 
-  private async handleLoginCheck(page: Page, userData: Dictionary) {
-    const { email, password } = userData;
-
+  private async handleLoginCheck(page: Page) {
     this.logger.log('🔐 Checking login status...');
-
     try {
       await page.waitForLoadState('domcontentloaded');
       const isLoggedIn = await this.isOnAccountPage(page);
@@ -96,7 +87,7 @@ export class GoogleService {
       }
 
       this.logger.log('❌ Not logged in. Starting login process...');
-      await this.performLogin(page, email, password);
+      await this.performLogin(page);
     } catch (error) {
       await this.saveDebugInfo(page, error as Error);
       throw error;
@@ -106,20 +97,14 @@ export class GoogleService {
   private async isOnAccountPage(page: Page): Promise<boolean> {
     try {
       const currentUrl = page.url();
-      if (!currentUrl.includes('myaccount.google.com')) {
-        return false;
-      }
-      // More reliable check for an element that signifies being logged in.
-      const profileButton = page.getByRole('link', { name: /Google Account: .*/ });
-      await profileButton.waitFor({ state: 'visible', timeout: 5000 });
-      return true;
+      return currentUrl.includes('myaccount.google.com');
     } catch (_error) {
       this.logger.log('Could not find logged-in user elements. Assuming not logged in.');
       return false;
     }
   }
 
-  private async performLogin(page: Page, email: string, password: string): Promise<void> {
+  private async performLogin(page: Page): Promise<void> {
     try {
       this.logger.log('📝 Performing login...');
 
@@ -143,13 +128,9 @@ export class GoogleService {
 
         if (await emailInput.isVisible()) {
           this.logger.log('📧 Email input is visible. Entering email...');
-          await emailInput.fill(email);
-          await page.getByRole('button', { name: 'Next' }).click();
 
           await passwordInput.waitFor({ state: 'visible', timeout: 10000 });
           this.logger.log('🔑 Password field detected. Entering password.');
-          await passwordInput.fill(password);
-          await page.getByRole('button', { name: 'Next' }).click();
         }
       } catch (_e) {
         this.logger.log(
@@ -165,7 +146,6 @@ export class GoogleService {
       });
 
       this.logger.log('✅ Login successful');
-      await this.saveCookies(page);
     } catch (error) {
       await this.saveDebugInfo(page, error as Error);
       throw error;
@@ -195,44 +175,5 @@ export class GoogleService {
     }
 
     this.logger.error('❌ Login process failed:', error.message);
-  }
-
-  private async saveCookies(page: Page): Promise<void> {
-    try {
-      const cookies = await page.context().cookies();
-      await fs.mkdir(path.dirname(this.COOKIE_PATH), { recursive: true });
-      await fs.writeFile(this.COOKIE_PATH, JSON.stringify(cookies, null, 2));
-
-      this.logger.log(`🍪 Cookies saved to: ${this.COOKIE_PATH}`);
-      this.logger.log(`🍪 Total cookies saved: ${cookies.length}`);
-    } catch (error) {
-      this.logger.error('❌ Failed to save cookies:', error);
-      throw error;
-    }
-  }
-
-  private async loadCookies(page: Page): Promise<void> {
-    try {
-      const cookieData = await fs.readFile(this.COOKIE_PATH, 'utf-8');
-      const cookies = JSON.parse(cookieData);
-      await page.context().addCookies(cookies);
-
-      this.logger.log(`🍪 Cookies loaded from: ${this.COOKIE_PATH}`);
-      this.logger.log(`🍪 Total cookies loaded: ${cookies.length}`);
-    } catch (error) {
-      this.logger.warn(
-        '⚠️ Failed to load cookies (file might not exist):',
-        (error as Error).message,
-      );
-    }
-  }
-
-  private async cookieFileExists(): Promise<boolean> {
-    try {
-      await fs.access(this.COOKIE_PATH);
-      return true;
-    } catch {
-      return false;
-    }
   }
 }
