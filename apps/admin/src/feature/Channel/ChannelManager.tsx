@@ -8,8 +8,8 @@ import { flex } from '@styled-system/patterns';
 import { useAtom } from 'jotai';
 import { KeyboardEvent } from 'react';
 import { toast } from 'react-toastify';
-import { ChannelList } from './List';
-import { ChannelScrapBoard } from './Scrap';
+import { ChannelList } from './ChannelList';
+import { ChannelScrapBoard } from './ScrapBoard';
 
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
