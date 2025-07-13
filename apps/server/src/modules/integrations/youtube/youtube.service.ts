@@ -1,6 +1,6 @@
 import { ONE_HOUR_AS_S } from '@constants/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
-import { GetNewVideosType } from '@modules/integrations/youtube/youtube.interface.js';
+import { YoutubeVideo } from '@modules/integrations/youtube/youtube.interface.js';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
@@ -25,7 +25,7 @@ export class YoutubeService {
     });
   }
 
-  public async getNewVideos(url: string): Promise<GetNewVideosType[]> {
+  public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
     const channelId = await this.getChannelId(url);
     this.logger.log(`Searching new videos for channel: ${channelId}`);
 
@@ -33,7 +33,7 @@ export class YoutubeService {
     const publishedAfter = oneDayAgo.toISOString();
 
     const searchResponse = await this.youtubeClient.search.list({
-      part: ['id', 'snippet'],
+      part: ['id'], // ID만 가져오도록 최적화
       channelId: channelId,
       publishedAfter: publishedAfter,
       type: ['video'],
@@ -41,24 +41,22 @@ export class YoutubeService {
       maxResults: 50,
     });
 
-    const items = searchResponse.data.items;
-    if (!Array.isArray(items) || isEmpty(items)) {
+    const searchItems = searchResponse.data.items;
+    if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
       this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
       return [];
     }
 
-    const videoIds = items
-      .filter((item) => item.snippet?.liveBroadcastContent === 'none')
-      .map((item) => item.id?.videoId)
-      .filter((id): id is string => !!id);
+    const videoIds = searchItems.map((item) => item.id?.videoId).filter((id): id is string => !!id);
 
-    if (!Array.isArray(videoIds) || isEmpty(videoIds)) {
-      this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
+    if (isEmpty(videoIds)) {
+      this.logger.log(`No new video IDs found for channel ${channelId}.`);
       return [];
     }
 
+    // videos.list를 사용하여 전체 상세 정보(snippet 포함)를 가져옵니다.
     const detailsResponse = await this.youtubeClient.videos.list({
-      part: ['contentDetails', 'id'],
+      part: ['contentDetails', 'id', 'snippet'], // snippet 추가
       id: videoIds,
       maxResults: 50,
     });
@@ -71,63 +69,57 @@ export class YoutubeService {
     const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
     const filteredVideos = videosWithDetails.filter((video) => {
       const duration = video.contentDetails?.duration;
-      if (!duration) return false; // 길이가 없으면 제외
+      if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
       const durationInSeconds = parseISO8601Duration(duration);
       return durationInSeconds <= maxDurationInSeconds;
     });
 
     const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
-
-    const videoDetails = items.map((item) => ({
-      id: item.id?.videoId,
-      title: item.snippet?.title,
-      thumbnail: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url,
-    }));
     const processedURL = existVideos.map((video) => video.url);
 
     const videoInfo = filteredVideos
-      .map((video) => ({
-        url: video.id && `https://www.youtube.com/watch?v=${video.id}`,
-        title: videoDetails.find((detail) => detail.id === video.id)?.title,
-        thumbnail: videoDetails.find((detail) => detail.id === video.id)?.thumbnail,
-      }))
-      .filter(({ title, url, thumbnail }) => !!title && !!url && !!thumbnail)
-      .filter((videoUrl): videoUrl is GetNewVideosType => !processedURL.includes(videoUrl.url!));
+      .map((video) => {
+        const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
+        if (!videoUrl || processedURL.includes(videoUrl)) {
+          return null; // 이미 처리된 URL은 제외
+        }
+        return {
+          url: videoUrl,
+          title: video.snippet?.title,
+          description: video.snippet?.description, // 잘리지 않은 전체 설명
+          thumbnail:
+            video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
+        };
+      })
+      .filter(
+        (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
+      );
 
-    this.logger.log(`Found ${videoInfo.length} new videos (under 1h 30m) from URL: ${url}`);
+    this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
     return videoInfo;
   }
 
   private async getChannelId(url: string): Promise<string> {
-    const decoded = decodeURIComponent(url);
-    console.log('dcoded', decoded);
-    const exists = await this.youtubeRepository.findChannelByUrl(decoded);
+    const decodedUrl = decodeURIComponent(url);
+    const existingChannel = await this.youtubeRepository.findChannelByUrl(decodedUrl);
 
-    if (exists) {
-      this.logger.log(`Found channel in DB: ${exists.channelId}`);
-      return exists.channelId;
+    if (existingChannel) {
+      this.logger.log(`Found channel in DB: ${existingChannel.channelId}`);
+      return existingChannel.channelId;
     }
 
-    const searchQuery = this.extractSearchQueryFromUrl(decoded);
+    const searchQuery = this.extractSearchQueryFromUrl(decodedUrl);
     if (!searchQuery) {
-      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_EXTRACT_KEYWORD(decoded));
+      throw new NotFoundException(YOUTUBE_ERROR.CANNOT_EXTRACT_KEYWORD(decodedUrl));
     }
 
-    console.log('searchQuery', searchQuery);
-    this.logger.log(`Searching YouTube with query: ${searchQuery}`);
-    const response = await this.youtubeClient.search.list({
-      part: ['snippet'],
-      q: searchQuery,
-      type: ['channel'],
-      maxResults: 1,
-    });
-
-    const channel = response.data.items?.[0];
-    if (!channel?.snippet) {
+    const channelData = await this.findChannelOnYouTube(searchQuery);
+    if (!channelData?.snippet) {
       throw new NotFoundException(YOUTUBE_ERROR.CHANNEL_NOT_FOUND(searchQuery));
     }
 
-    const { channelId, title, publishedAt, thumbnails } = channel.snippet;
+    const { id: channelId } = channelData;
+    const { title, publishedAt, thumbnails } = channelData.snippet;
     const requiredFields = [channelId, title, publishedAt, thumbnails];
 
     if (!requiredFields.every(Boolean)) {
@@ -136,27 +128,70 @@ export class YoutubeService {
 
     const newChannel = await this.youtubeRepository.createChannel({
       channelId: channelId!,
-      url: url!,
+      url: decodedUrl,
       title: title!,
       publishedAt: publishedAt!,
       urlSlug: searchQuery,
-      thumbnails: thumbnails as any, // Changed 'any' to 'unknown'
+      thumbnails: thumbnails as any,
     });
 
     this.logger.log(`Saved new channel to DB: ${newChannel.channelId}`);
     return newChannel.channelId;
   }
 
+  private async findChannelOnYouTube(
+    searchQuery: string,
+  ): Promise<youtube_v3.Schema$Channel | undefined> {
+    if (searchQuery.startsWith('@')) {
+      this.logger.log(`Searching YouTube with handle: ${searchQuery}`);
+      const response = await this.youtubeClient.channels.list({
+        part: ['snippet'],
+        forHandle: searchQuery,
+      });
+
+      const channel = response.data.items?.[0];
+      if (channel?.snippet?.country === 'KR') {
+        return channel;
+      }
+    } else {
+      this.logger.log(`Searching YouTube with query: ${searchQuery}`);
+      const searchResponse = await this.youtubeClient.search.list({
+        part: ['snippet'],
+        q: searchQuery,
+        type: ['channel'],
+        regionCode: 'KR',
+        maxResults: 1,
+      });
+
+      const searchResult = searchResponse.data.items?.[0];
+      if (searchResult?.id?.channelId) {
+        const detailsResponse = await this.youtubeClient.channels.list({
+          part: ['snippet'],
+          id: [searchResult.id.channelId],
+        });
+        const channel = detailsResponse.data.items?.[0];
+        if (channel?.snippet?.country === 'KR') {
+          return channel;
+        }
+      }
+    }
+    return undefined;
+  }
+
   private extractSearchQueryFromUrl(urlString: string): string | null {
     try {
       const parsedUrl = new URL(urlString);
+      const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+      const lastSegment = pathSegments.pop();
 
-      console.log(parsedUrl, parsedUrl);
-      const searchQuery = parsedUrl.pathname.split('/').filter(Boolean).pop();
+      if (!lastSegment) return null;
 
-      return typeof searchQuery === 'string' ? decodeURIComponent(searchQuery) : null;
-    } catch (error) {
-      console.error(error);
+      if (lastSegment.startsWith('@')) {
+        return lastSegment;
+      }
+
+      return decodeURIComponent(lastSegment);
+    } catch (_) {
       this.logger.warn(YOUTUBE_ERROR.WRONG_URL(urlString));
       return null;
     }

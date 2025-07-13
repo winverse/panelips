@@ -71,8 +71,13 @@ export const clearAllChannelsAtom = atom(null, (_get, set) => {
   set(channelsAtom, []);
 });
 
+export const clearAllScrapTargetChannelsAtom = atom(null, (_get, set) => {
+  set(scrapTargetChannelsAtom, []);
+});
+
 export type ScrapChannel = {
   title: string;
   url: string;
   thumbnail?: string | undefined;
+  description: string;
 };

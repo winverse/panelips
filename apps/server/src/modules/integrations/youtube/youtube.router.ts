@@ -22,6 +22,7 @@ export function createYoutubeRouter(app: INestApplication) {
             title: z.string(),
             url: z.string(),
             thumbnail: z.string().optional(),
+            description: z.string(),
           }),
         ),
       )

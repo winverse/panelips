@@ -10,8 +10,9 @@ export type YouTubeThumbnail = {
   };
 };
 
-export type GetNewVideosType = {
+export type YoutubeVideo = {
   title: string;
   url: string;
+  description: string;
   thumbnail: string;
 };
