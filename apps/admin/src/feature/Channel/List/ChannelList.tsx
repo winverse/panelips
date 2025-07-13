@@ -1,6 +1,4 @@
 import { Button } from '@src/components/Button';
-import { ChannelEmptyState } from './ChannelEmptyState';
-import { ChannelItem } from './ChannelItem';
 import { useTRPC } from '@src/lib/trpc';
 import { addScrapChannelAtom, ScrapChannel } from '@src/store';
 import { css } from '@styled-system/css';
@@ -8,6 +6,8 @@ import { flex } from '@styled-system/patterns';
 import { useQueries } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { toast } from 'react-toastify';
+import { ChannelEmptyState } from './ChannelEmptyState';
+import { ChannelItem } from './ChannelItem';
 
 type ChannelListProps = {
   channels: string[];
@@ -31,10 +31,21 @@ export function ChannelList({ channels }: ChannelListProps) {
     // Check if all queries are successful and have data
     const allChannelData: ScrapChannel[] = [];
     let hasError = false;
+    let errorMessage = '일부 채널 정보를 가져오는데 실패했습니다.';
 
     for (const query of channelQueries) {
       if (query.isError) {
         hasError = true;
+
+        // YouTube API 쿼터 초과 에러 확인
+        const error = query.error as any;
+        if (error?.message?.includes('YouTube API 일일 사용량 한도를 초과했습니다')) {
+          errorMessage = 'YouTube API 일일 사용량 한도를 초과했습니다. 내일 다시 시도해주세요.';
+        } else if (error?.message?.includes('YouTube API 요청 오류')) {
+          errorMessage = 'YouTube API 요청에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (error?.message?.includes('YouTube 서버에 일시적인 문제')) {
+          errorMessage = 'YouTube 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
         break;
       }
       if (query.data) {
@@ -43,7 +54,7 @@ export function ChannelList({ channels }: ChannelListProps) {
     }
 
     if (hasError) {
-      toast.error('일부 채널 정보를 가져오는데 실패했습니다.');
+      toast.error(errorMessage);
       return;
     }
 
@@ -91,9 +102,9 @@ export function ChannelList({ channels }: ChannelListProps) {
         >
           저장된 채널
         </h3>
-        <Button 
-          size="md" 
-          variant="primary" 
+        <Button
+          size="md"
+          variant="primary"
           type="button"
           onClick={handleBulkScrap}
           disabled={channels.length === 0 || isLoading}

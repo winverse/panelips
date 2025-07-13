@@ -43,7 +43,7 @@ export function ChannelManager() {
         border: '1px solid',
         borderColor: 'border.primary',
         borderRadius: '8px',
-        h: '100%',
+        minH: '100%',
       })}
     >
       <h2

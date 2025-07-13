@@ -1,14 +1,15 @@
 import { Button } from '@src/components/Button';
-import { ChannelScrapEmptyState } from './ChannelScrapEmptyState';
-import { ChannelScrapItem } from './ChannelScrapItem'; // 새로 추가
 import {
   clearAllScrapTargetChannelsAtom,
   removeScrapTargetChannelAtom,
   scrapTargetChannelsAtom,
 } from '@src/store';
 import { css } from '@styled-system/css';
+import { flex } from '@styled-system/patterns'; // 새로 추가
 import { useAtom } from 'jotai';
 import { MdVideoLibrary } from 'react-icons/md';
+import { ChannelScrapEmptyState } from './ChannelScrapEmptyState';
+import { ChannelScrapItem } from './ChannelScrapItem';
 
 export function ChannelScrapBoard() {
   const [channels] = useAtom(scrapTargetChannelsAtom);
@@ -31,6 +32,8 @@ export function ChannelScrapBoard() {
     <div
       className={css({
         w: '100%',
+        maxH: '100%',
+        scrollbar: 'auto',
       })}
     >
       <div
@@ -65,22 +68,41 @@ export function ChannelScrapBoard() {
             스크랩 대상 ({channels.length}개)
           </h3>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleClearAll}
-          className={css({
-            color: 'error.600',
-            borderColor: 'error.200',
-            _hover: {
-              color: 'error.700',
-              borderColor: 'error.300',
-              bg: 'error.50',
-            },
-          })}
-        >
-          전체 삭제
-        </Button>
+        <div className={flex({ gap: '0.5rem' })}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClearAll}
+            className={css({
+              color: 'error.600',
+              mr: '0.5rem',
+              borderColor: 'error.200',
+              _hover: {
+                color: 'error.700',
+                borderColor: 'error.300',
+                bg: 'error.50',
+              },
+            })}
+          >
+            전체 삭제
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClearAll}
+            className={css({
+              color: 'error.600',
+              borderColor: 'error.200',
+              _hover: {
+                color: 'error.700',
+                borderColor: 'error.300',
+                bg: 'error.50',
+              },
+            })}
+          >
+            GEMINI 요약하기
+          </Button>
+        </div>
       </div>
 
       <div

@@ -94,7 +94,7 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
             href={channel.url}
             target="_blank"
           >
-            {channel.url}
+            {`${channel.url.slice(0, 30)}...`}
           </a>
         </div>
 

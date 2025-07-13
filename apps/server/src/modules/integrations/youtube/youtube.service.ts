@@ -26,77 +26,100 @@ export class YoutubeService {
   }
 
   public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
-    const channelId = await this.getChannelId(url);
-    this.logger.log(`Searching new videos for channel: ${channelId}`);
+    try {
+      const channelId = await this.getChannelId(url);
+      this.logger.log(`Searching new videos for channel: ${channelId}`);
 
-    const oneDayAgo = subDays(new Date(), 2);
-    const publishedAfter = oneDayAgo.toISOString();
+      const oneDayAgo = subDays(new Date(), 2);
+      const publishedAfter = oneDayAgo.toISOString();
 
-    const searchResponse = await this.youtubeClient.search.list({
-      part: ['id'], // ID만 가져오도록 최적화
-      channelId: channelId,
-      publishedAfter: publishedAfter,
-      type: ['video'],
-      order: 'date',
-      maxResults: 50,
-    });
+      const searchResponse = await this.youtubeClient.search.list({
+        part: ['id'],
+        channelId: channelId,
+        publishedAfter: publishedAfter,
+        type: ['video'],
+        order: 'date',
+        maxResults: 50,
+      });
 
-    const searchItems = searchResponse.data.items;
-    if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
-      this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
-      return [];
+      const searchItems = searchResponse.data.items;
+      if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
+        this.logger.log(`No new videos found for channel ${channelId} in the last week.`);
+        return [];
+      }
+
+      const videoIds = searchItems
+        .map((item) => item.id?.videoId)
+        .filter((id): id is string => !!id);
+
+      if (isEmpty(videoIds)) {
+        this.logger.log(`No new video IDs found for channel ${channelId}.`);
+        return [];
+      }
+
+      // videos.list를 사용하여 전체 상세 정보(snippet 포함)를 가져옵니다.
+      const detailsResponse = await this.youtubeClient.videos.list({
+        part: ['contentDetails', 'id', 'snippet'], // snippet 추가
+        id: videoIds,
+        maxResults: 50,
+      });
+
+      const videosWithDetails = detailsResponse.data.items;
+      if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
+        return [];
+      }
+
+      const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
+      const filteredVideos = videosWithDetails.filter((video) => {
+        const duration = video.contentDetails?.duration;
+        if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
+        const durationInSeconds = parseISO8601Duration(duration);
+        return durationInSeconds <= maxDurationInSeconds;
+      });
+
+      const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
+      const processedURL = existVideos.map((video) => video.url);
+
+      const videoInfo = filteredVideos
+        .map((video) => {
+          const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
+          if (!videoUrl || processedURL.includes(videoUrl)) {
+            return null; // 이미 처리된 URL은 제외
+          }
+          return {
+            url: videoUrl,
+            title: video.snippet?.title,
+            description: video.snippet?.description, // 잘리지 않은 전체 설명
+            thumbnail:
+              video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
+          };
+        })
+        .filter(
+          (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
+        );
+
+      this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
+      return videoInfo;
+    } catch (error: any) {
+      this.logger.error(`새 유튜브 동영상 가져오는 중 오류 발생: ${error.message}`, error.stack);
+
+      // YouTube API 쿼터 초과 에러 처리
+      if (error.status === 403 && error.message?.includes('quota')) {
+        throw new Error('YouTube API 일일 사용량 한도를 초과했습니다. 내일 다시 시도해주세요.');
+      }
+
+      // 기타 YouTube API 에러 처리
+      if (error.status >= 400 && error.status < 500) {
+        throw new Error(`YouTube API 요청 오류: ${error.message}`);
+      }
+
+      if (error.status >= 500) {
+        throw new Error('YouTube 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      // 기타 에러
+      throw new Error(`새 동영상 가져오기 실패: ${error.message}`);
     }
-
-    const videoIds = searchItems.map((item) => item.id?.videoId).filter((id): id is string => !!id);
-
-    if (isEmpty(videoIds)) {
-      this.logger.log(`No new video IDs found for channel ${channelId}.`);
-      return [];
-    }
-
-    // videos.list를 사용하여 전체 상세 정보(snippet 포함)를 가져옵니다.
-    const detailsResponse = await this.youtubeClient.videos.list({
-      part: ['contentDetails', 'id', 'snippet'], // snippet 추가
-      id: videoIds,
-      maxResults: 50,
-    });
-
-    const videosWithDetails = detailsResponse.data.items;
-    if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
-      return [];
-    }
-
-    const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
-    const filteredVideos = videosWithDetails.filter((video) => {
-      const duration = video.contentDetails?.duration;
-      if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
-      const durationInSeconds = parseISO8601Duration(duration);
-      return durationInSeconds <= maxDurationInSeconds;
-    });
-
-    const existVideos = await this.youtubeRepository.findVideos(channelId, oneDayAgo);
-    const processedURL = existVideos.map((video) => video.url);
-
-    const videoInfo = filteredVideos
-      .map((video) => {
-        const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
-        if (!videoUrl || processedURL.includes(videoUrl)) {
-          return null; // 이미 처리된 URL은 제외
-        }
-        return {
-          url: videoUrl,
-          title: video.snippet?.title,
-          description: video.snippet?.description, // 잘리지 않은 전체 설명
-          thumbnail:
-            video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
-        };
-      })
-      .filter(
-        (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
-      );
-
-    this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
-    return videoInfo;
   }
 
   private async getChannelId(url: string): Promise<string> {
@@ -142,24 +165,22 @@ export class YoutubeService {
   private async findChannelOnYouTube(
     searchQuery: string,
   ): Promise<youtube_v3.Schema$Channel | undefined> {
-    if (searchQuery.startsWith('@')) {
-      this.logger.log(`Searching YouTube with handle: ${searchQuery}`);
-      const response = await this.youtubeClient.channels.list({
-        part: ['snippet'],
-        forHandle: searchQuery,
-      });
+    try {
+      if (searchQuery.startsWith('@')) {
+        this.logger.log(`Searching YouTube with handle: ${searchQuery}`);
+        const response = await this.youtubeClient.channels.list({
+          part: ['snippet'],
+          forHandle: searchQuery,
+        });
 
-      const channel = response.data.items?.[0];
-      if (channel?.snippet?.country === 'KR') {
-        return channel;
+        return response.data.items?.[0];
       }
-    } else {
+
       this.logger.log(`Searching YouTube with query: ${searchQuery}`);
       const searchResponse = await this.youtubeClient.search.list({
         part: ['snippet'],
         q: searchQuery,
         type: ['channel'],
-        regionCode: 'KR',
         maxResults: 1,
       });
 
@@ -169,13 +190,30 @@ export class YoutubeService {
           part: ['snippet'],
           id: [searchResult.id.channelId],
         });
-        const channel = detailsResponse.data.items?.[0];
-        if (channel?.snippet?.country === 'KR') {
-          return channel;
-        }
+        return detailsResponse.data.items?.[0];
       }
+      return undefined;
+    } catch (error: any) {
+      this.logger.error(`YouTube 채널 검색 중 오류 발생: ${error.message}`, error.stack);
+
+      // YouTube API 쿼터 초과 에러 처리
+      if (error.status === 403 && error.message?.includes('quota')) {
+        throw new Error('YouTube API 일일 사용량 한도를 초과했습니다. 내일 다시 시도해주세요.');
+      }
+
+      // 기타 YouTube API 에러 처리
+      if (error.status >= 400 && error.status < 500) {
+        throw new Error(`YouTube API 요청 오류: ${error.message}`);
+      }
+
+      if (error.status >= 500) {
+        throw new Error('YouTube 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      // 기타 에러는 undefined 반환 (채널을 찾지 못한 것으로 처리)
+      this.logger.warn(`채널 검색 실패, undefined 반환: ${error.message}`);
+      return undefined;
     }
-    return undefined;
   }
 
   private extractSearchQueryFromUrl(urlString: string): string | null {
