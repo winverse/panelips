@@ -1,5 +1,5 @@
 import { createAutomationRouter } from '@modules/automation/index.js';
-import { createYoutubeRouter } from '@modules/integrations/youtube/youtube.router.js';
+import { createYoutubeRouter } from '@modules/youtube/youtube.router.js';
 import { INestApplication } from '@nestjs/common';
 import { TrpcService } from '@src/trpc/trpc.service.js';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';

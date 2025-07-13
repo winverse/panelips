@@ -1,5 +1,5 @@
 import { GoogleModule } from '@modules/automation/google/google.module.js';
-import { YoutubeModule } from '@modules/integrations/youtube/index.js';
+import { YoutubeModule } from '@modules/youtube/index.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@packages/config';
 import { TrpcModule } from '@src/trpc/trpc.module.js';

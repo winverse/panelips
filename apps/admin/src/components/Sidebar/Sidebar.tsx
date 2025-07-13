@@ -13,8 +13,8 @@ import {
 export function Sidebar() {
   const regularMenuItems = [
     { id: 'channels', label: '채널 관리', href: '/', icon: MdTv },
-    { id: 'google', label: '구글 관리', href: '/google', icon: MdSearch },
     { id: 'panels', label: '패널 관리', href: '/panels', icon: MdDashboard },
+    { id: 'library', label: '자료실', href: '/library', icon: MdSearch },
   ];
 
   const apiMenuItem = { id: 'trpc-panel', label: 'API', href: '/api/panel', icon: MdBolt };

@@ -1,6 +1,6 @@
+import { MongoService } from '@core/database/mongo/mongo.service.js';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@packages/database/mongo';
-import { MongoService } from '@src/core/database/mongo/mongo.service.js';
 
 @Injectable()
 export class YoutubeRepository {
@@ -8,6 +8,10 @@ export class YoutubeRepository {
 
   public async findChannelByUrl(url: string) {
     return this.mongo.youtubeChannel.findFirst({ where: { url } });
+  }
+
+  public async findChannels() {
+    return this.mongo.youtubeChannel.findMany();
   }
 
   public async createChannel(data: Prisma.YoutubeChannelCreateInput) {

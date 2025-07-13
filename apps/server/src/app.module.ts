@@ -1,5 +1,5 @@
 import { AutomationModule } from '@modules/automation/index.js';
-import { YoutubeModule } from '@modules/integrations/youtube/index.js';
+import { YoutubeModule } from '@modules/youtube/index.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ConfigModule } from '@packages/config';

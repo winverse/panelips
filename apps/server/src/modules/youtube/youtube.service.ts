@@ -1,17 +1,23 @@
 import { ONE_HOUR_AS_S } from '@constants/index.js';
+import type { Config } from '@core/config/index.js';
+import { MongoService } from '@core/database/mongo/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
-import { YoutubeVideo } from '@modules/integrations/youtube/youtube.interface.js';
+import { YoutubeVideo } from '@modules/youtube/youtube.interface.js';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@packages/config';
 import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
 import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
-import type { Config } from '@src/core/config/index.js';
 import { subDays } from 'date-fns';
 import { isEmpty } from 'es-toolkit/compat';
 import { YoutubeRepository } from './youtube.repository.js';
 
+interface YoutubeServiceInterface {
+  getNewVideos(url: string): Promise<YoutubeVideo[]>;
+  getChannelsUrl(): Promise<string[]>;
+}
+
 @Injectable()
-export class YoutubeService {
+export class YoutubeService implements YoutubeServiceInterface {
   private readonly logger = new Logger(YoutubeService.name);
   private readonly youtubeClient: youtube_v3.Youtube;
 
@@ -233,5 +239,10 @@ export class YoutubeService {
       this.logger.warn(YOUTUBE_ERROR.WRONG_URL(urlString));
       return null;
     }
+  }
+
+  public async getChannelsUrl(): Promise<string[]> {
+    const channels = await this.youtubeRepository.findChannels();
+    return channels.slice(0, 1).map((channel) => channel.url);
   }
 }

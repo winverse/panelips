@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { YoutubeChannelScrapArgs } from '@modules/automation/youtube-channel/youtube-channel.interface.js';
-import { YoutubeService } from '@modules/integrations/youtube/index.js';
+import { YoutubeService } from '@modules/youtube/index.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { createYoutubeChannelScrapPrompt } from '@src/common/prompts/index.js';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
@@ -79,9 +79,7 @@ export class YoutubeChannelService {
 
   private async handleGeminiScrape(page: Page, userData: Dictionary) {
     const { prompt } = userData;
-
     this.logger.log('🤖 Starting Gemini prompt processing...');
-
     try {
       const isLoggedIn = await this.checkGoogleLoginStatus(page);
       if (!isLoggedIn) {
@@ -162,18 +160,11 @@ export class YoutubeChannelService {
         );
       }
 
-      // 2. 이제 더 정확한 상위 컨테이너 셀렉터를 사용합니다.
-      // id="chat-history"를 가진 div와 data-test-id="chat-history-container"를 가진 infinite-scroller를 함께 사용합니다.
       const chatHistoryContainerSelector =
         '#chat-history infinite-scroller[data-test-id="chat-history-container"]';
 
-      // 그 안에 있는 가장 마지막 conversation-container를 찾습니다.
       const lastConversationContainerSelector = `${chatHistoryContainerSelector} div.conversation-container.message-actions-hover-boundary:last-child`;
-
-      // 최종 응답 텍스트가 들어가는 요소.
-      // 스크린샷을 보니 <model-response> 안에 <message-content class="model-response-text">가 있습니다.
       const lastModelResponseTextSelector = `${lastConversationContainerSelector} model-response message-content.model-response-text`;
-
       const completionKeyword = '"response": "completed"';
 
       this.logger.log(
@@ -185,10 +176,8 @@ export class YoutubeChannelService {
       const timeoutKeywordCheck = 120000; // 추가 2분 대기 (응답이 길 수 있으므로 충분히)
 
       while (!isCompletedWithKeyword && Date.now() - startTimeKeywordCheck < timeoutKeywordCheck) {
-        // 마지막 모델 응답 텍스트 요소를 찾습니다.
         const lastModelResponseElement = await page.$(lastModelResponseTextSelector);
         if (lastModelResponseElement) {
-          // 해당 요소의 텍스트 콘텐츠를 가져옵니다.
           const pageContent = await lastModelResponseElement.textContent();
           if (pageContent?.includes(completionKeyword)) {
             isCompletedWithKeyword = true;
