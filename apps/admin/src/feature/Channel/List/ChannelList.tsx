@@ -1,6 +1,6 @@
 import { Button } from '@src/components/Button';
-import { ChannelEmptyState } from '@src/feature/Channel/ChannelEmptyState';
-import { ChannelItem } from '@src/feature/Channel/ChannelItem';
+import { ChannelEmptyState } from './ChannelEmptyState';
+import { ChannelItem } from './ChannelItem';
 import { useTRPC } from '@src/lib/trpc';
 import { addScrapChannelAtom, ScrapChannel } from '@src/store';
 import { css } from '@styled-system/css';

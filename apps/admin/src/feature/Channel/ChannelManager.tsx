@@ -2,14 +2,14 @@
 
 import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
-import { ChannelList } from '@src/feature/Channel/ChannelList';
-import { ChannelScrapBoard } from '@src/feature/Channel/ChannelScrapBoard';
 import { addChannelAtom, channelsAtom, channelUrlAtom } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useAtom } from 'jotai';
 import { KeyboardEvent } from 'react';
 import { toast } from 'react-toastify';
+import { ChannelList } from './List';
+import { ChannelScrapBoard } from './Scrap';
 
 export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
