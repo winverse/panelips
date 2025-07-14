@@ -1,6 +1,5 @@
 import { ONE_HOUR_AS_S } from '@constants/index.js';
 import type { Config } from '@core/config/index.js';
-import { MongoService } from '@core/database/mongo/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
 import { YoutubeVideo } from '@modules/youtube/youtube.interface.js';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';

@@ -1,10 +1,10 @@
-interface YoutubeChannelScrapInput {
+interface CreateYoutubeJsonPromptInput {
   url: string;
   description: string;
   title: string;
 }
 
-export function createYoutubeChannelScrapPrompt(input: YoutubeChannelScrapInput): string {
+export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): string {
   const { url, description, title } = input;
 
   return `# 역할 및 목표
@@ -93,7 +93,7 @@ export function createYoutubeChannelScrapPrompt(input: YoutubeChannelScrapInput)
 "panels": null,
 "insights": null,
 "reason": "주식, 환율, 원자재 등 투자 자산과 직접 관련된 구체적인 예측이나 의견이 없다고 판단된 이유",
-response: "completed"
+"response": "completed"
 }
 \`\`\`
 ---

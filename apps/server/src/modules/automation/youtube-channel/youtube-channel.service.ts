@@ -3,7 +3,10 @@ import path from 'node:path';
 import { YoutubeChannelScrapArgs } from '@modules/automation/youtube-channel/youtube-channel.interface.js';
 import { YoutubeService } from '@modules/youtube/index.js';
 import { Injectable, Logger } from '@nestjs/common';
-import { createYoutubeChannelScrapPrompt } from '@src/common/prompts/index.js';
+import {
+  createYoutubeJsonPrompt,
+  createYoutubeVideoScriptPrompt,
+} from '@src/common/prompts/index.js';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
 
@@ -15,22 +18,21 @@ export class YoutubeChannelService {
 
   constructor(private readonly youtubeService: YoutubeService) {}
 
-  public async youtubeChannelScrap({
-    title,
-    url,
-    description,
-  }: Omit<YoutubeChannelScrapArgs, 'email' | 'password'>) {
-    const prompt = createYoutubeChannelScrapPrompt({ title, description, url });
+  public async youtubeChannelScrap({ title, url, description }: YoutubeChannelScrapArgs) {
+    const jsonPrompt = createYoutubeJsonPrompt({ title, description, url });
+    const scriptPrompt = createYoutubeVideoScriptPrompt({ title, description, url });
 
     this.logger.log('🚀 Starting scraping process with persistent user profile...');
     this.logger.log(`👤 Using user data directory: ${this.USER_DATA_DIR}`);
 
-    const requestQueue = await RequestQueue.open();
+    const requestQueue = await RequestQueue.open(`youtube-prompts-${Date.now()}`);
     await requestQueue.addRequest({
-      url: 'https://myaccount.google.com/',
-      userData: { prompt },
-      retryCount: 1,
-      maxRetries: 1,
+      url: 'https://gemini.google.com/app',
+      userData: { prompt: jsonPrompt, type: 'json' },
+    });
+    await requestQueue.addRequest({
+      url: 'https://gemini.google.com/app',
+      userData: { prompt: scriptPrompt, type: 'script' },
     });
 
     const crawler = new PlaywrightCrawler({
@@ -52,7 +54,7 @@ export class YoutubeChannelService {
         userDataDir: this.USER_DATA_DIR,
         launchOptions: {
           channel: 'chrome',
-          headless: false, // Set to true for production runs
+          headless: false,
           args: [
             '--proxy-server=direct://',
             '--proxy-bypass-list=*',
@@ -60,65 +62,37 @@ export class YoutubeChannelService {
           ],
         },
       },
-
-      // The handler now executes all logic sequentially for the single request.
       requestHandler: async ({ page, request, log }) => {
-        log.info(`[Processing started] ${request.url}`);
+        const { type } = request.userData;
+        log.info(`[Processing started] ${request.url} - Type: ${type}`);
         await this.handleGeminiScrape(page, request.userData);
       },
-
       failedRequestHandler: async ({ page, request, error }) => {
-        this.logger.error(`Request ${request.url} failed:`, error);
+        const { type } = request.userData;
+        this.logger.error(`Request ${request.url} (type: ${type}) failed:`, error);
         await this.saveDebugInfo(page, 'failed-request');
-        await page.close();
       },
     });
 
     await crawler.run();
+    this.logger.log('✅ Completed all scraping prompts.');
   }
 
   private async handleGeminiScrape(page: Page, userData: Dictionary) {
     const { prompt } = userData;
     this.logger.log('🤖 Starting Gemini prompt processing...');
     try {
-      const isLoggedIn = await this.checkGoogleLoginStatus(page);
-      if (!isLoggedIn) {
-        await this.saveDebugInfo(page, 'login-check-failed');
-        this.logger.error('================================================================');
-        this.logger.error('❌ LOGIN NOT DETECTED! ❌');
-        this.logger.error('The persistent profile is not logged in.');
-        this.logger.error(
-          'Please run the `googleLogin` service first to complete the one-time manual login.',
-        );
-        this.logger.error('================================================================');
-        await page.close();
-      }
-
-      this.logger.log('✅ Login status confirmed.');
-      await page.waitForTimeout(3000);
-
-      await page.goto('https://gemini.google.com/app', { waitUntil: 'domcontentloaded' });
+      // The login check is implicitly handled by using a persistent user data directory.
+      // If login is required, it should be done beforehand.
+      // We navigate directly to the Gemini app URL provided in the request.
+      await page.goto(userData.url, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(3000);
 
       await this.inputPromptToGemini(page, prompt);
     } catch (error) {
       this.logger.error('Error during Gemini scraping:', error);
-      // Avoid saving debug info again if it was already saved for login failure.
-      if (error.message !== 'Persistent profile is not logged in.') {
-        await this.saveDebugInfo(page, 'gemini-scrape-failed');
-      }
+      await this.saveDebugInfo(page, 'gemini-scrape-failed');
       throw error;
-    }
-  }
-
-  private async checkGoogleLoginStatus(page: Page): Promise<boolean> {
-    try {
-      const currentUrl = page.url();
-      return currentUrl.includes('myaccount.google.com');
-    } catch (_error) {
-      this.logger.log('Could not find logged-in user elements. Assuming not logged in.');
-
-      return false;
     }
   }
 
@@ -215,7 +189,7 @@ export class YoutubeChannelService {
       const rawJSON = JSON.parse(rawString);
       console.log('text', rawJSON);
 
-      await page.waitForTimeout(90000000);
+      await page.waitForTimeout(5000);
     } catch (error) {
       this.logger.error('Gemini input area not found:', error);
     }
