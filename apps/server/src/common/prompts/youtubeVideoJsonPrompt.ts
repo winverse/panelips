@@ -1,3 +1,5 @@
+import { extractYouTubeVideoId } from '@src/common/utils/index.js';
+
 interface CreateYoutubeJsonPromptInput {
   url: string;
   description: string;
@@ -6,7 +8,7 @@ interface CreateYoutubeJsonPromptInput {
 
 export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): string {
   const { url, description, title } = input;
-
+  const videoId = extractYouTubeVideoId(url);
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 데이터 분석 AI입니다. 당신의 임무는 제공된 유튜브 영상 정보에서 **가장 가치 있는 핵심 인사이트만을 선별(Curation)**하여, 비평 및 연구 목적으로 사용될 데이터를 생성하는 것입니다. 모든 결과물은 저작권의 '공정 이용' 원칙을 철저히 준수해야 합니다.
 
@@ -41,8 +43,8 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 \`\`\`json
 {
     "isRelatedAsset": true,
-    "youtubeVideo": {
-        "videoId": "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)",
+    "videoInfo": {
+        "videoId": ${videoId} // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)" 맞지 않으면 수정 바람,
         "url": "분석 대상 영상 URL과 동일한 값",
         "title": "유튜브 영상 제목",
         "channelName": "유튜브 채널 이름",

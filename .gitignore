@@ -35,5 +35,6 @@ Thumbs.db
 # Prisma
 packages/prisma/generated
 
-# GEMINI
+# LLM
 GEMINI.md
+.junie/**

@@ -1,3 +1,5 @@
+import { extractYouTubeVideoId } from '@src/common/utils/index.js';
+
 interface YoutubeVideoScriptInput {
   url: string;
   description: string;
@@ -6,6 +8,7 @@ interface YoutubeVideoScriptInput {
 
 export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): string {
   const { url, description, title } = input;
+  const videoId = extractYouTubeVideoId(url);
 
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 유튜브 영상 요약 AI입니다. 당신의 임무는 제공된 유튜브 영상에서 **광범위하고 포괄적인 내용**을 시간순으로 정리하여, 영상의 전체적인 흐름과 맥락을 파악할 수 있는 상세한 요약 데이터를 생성하는 것입니다.
@@ -31,6 +34,7 @@ export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): 
 \`\`\`json
 {
   "videoInfo": {
+    "videoId": ${videoId} // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)" 맞지 않으면 수정 바람,
     "url": "${url}",
     "title": "${title}",
     "description": "${description}",
@@ -70,7 +74,7 @@ export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): 
    - 발언 전후의 상황과 연결점을 명확히 기술
 
 2. **time 필드 작성 규칙:**
-   - MM:SS 또는 HH:MM:SS 형식으로 작성
+   - 초 단위 숫자 형식 (ex: 1분 -> 60)
    - 실제 영상의 타임스탬프를 기준으로 작성
    - 영상 스크립트가 없는 경우, 추정 시간을 합리적으로 배치
    - 시간 간격은 발언의 중요도와 길이에 따라 조정 (보통 1-3분 간격)

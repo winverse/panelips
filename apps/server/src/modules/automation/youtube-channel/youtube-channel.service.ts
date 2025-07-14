@@ -13,6 +13,13 @@ import { Page } from 'playwright';
 @Injectable()
 export class YoutubeChannelService {
   private readonly logger = new Logger(YoutubeChannelService.name);
+
+  // --- 💡 타임아웃 설정 변수 ---
+  private readonly TIMEOUT_MINUTES = 4;
+  private readonly TIMEOUT_SECONDS = this.TIMEOUT_MINUTES * 60;
+  private readonly TIMEOUT_MILLIS = this.TIMEOUT_SECONDS * 1000;
+  // --------------------------
+
   private readonly USER_DATA_DIR = path.resolve(process.cwd(), 'playwright', 'user-data');
   private readonly DEBUG_PATH = path.resolve(process.cwd(), 'playwright', 'debug');
 
@@ -28,10 +35,12 @@ export class YoutubeChannelService {
     const requestQueue = await RequestQueue.open(`youtube-prompts-${Date.now()}`);
     await requestQueue.addRequest({
       url: 'https://gemini.google.com/app',
+      uniqueKey: `json-${url}`,
       userData: { prompt: jsonPrompt, type: 'json' },
     });
     await requestQueue.addRequest({
       url: 'https://gemini.google.com/app',
+      uniqueKey: `script-${url}`,
       userData: { prompt: scriptPrompt, type: 'script' },
     });
 
@@ -39,6 +48,8 @@ export class YoutubeChannelService {
       requestQueue,
       maxRequestRetries: 1,
       useSessionPool: false,
+      maxConcurrency: 1,
+      requestHandlerTimeoutSecs: this.TIMEOUT_SECONDS,
       browserPoolOptions: {
         useFingerprints: true,
         fingerprintOptions: {
@@ -65,7 +76,7 @@ export class YoutubeChannelService {
       requestHandler: async ({ page, request, log }) => {
         const { type } = request.userData;
         log.info(`[Processing started] ${request.url} - Type: ${type}`);
-        await this.handleGeminiScrape(page, request.userData);
+        await this.handleGeminiScrape(page, request.url, request.userData);
       },
       failedRequestHandler: async ({ page, request, error }) => {
         const { type } = request.userData;
@@ -78,61 +89,58 @@ export class YoutubeChannelService {
     this.logger.log('✅ Completed all scraping prompts.');
   }
 
-  private async handleGeminiScrape(page: Page, userData: Dictionary) {
-    const { prompt } = userData;
-    this.logger.log('🤖 Starting Gemini prompt processing...');
+  private async handleGeminiScrape(page: Page, url: string, userData: Dictionary) {
+    const { prompt, type } = userData;
+    this.logger.log(`🤖 [${type}] Starting Gemini prompt processing...`);
     try {
-      // The login check is implicitly handled by using a persistent user data directory.
-      // If login is required, it should be done beforehand.
-      // We navigate directly to the Gemini app URL provided in the request.
-      await page.goto(userData.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(3000);
 
-      await this.inputPromptToGemini(page, prompt);
+      const newChatButtonSelector = '[data-test-id="new-chat-button"]';
+
+      await page.waitForSelector(newChatButtonSelector, { state: 'visible', timeout: 10000 });
+      await page.click(newChatButtonSelector);
+      this.logger.log(`✅ [${type}] 새 채팅이 성공적으로 시작되었습니다.`);
+      await page.waitForTimeout(2000); // 새 채팅 UI 로딩 대기
+
+      await this.inputPromptToGemini(page, prompt, type);
     } catch (error) {
-      this.logger.error('Error during Gemini scraping:', error);
-      await this.saveDebugInfo(page, 'gemini-scrape-failed');
+      this.logger.error(`❌ [${type}] Error during Gemini scraping:`, error);
+      await this.saveDebugInfo(page, `gemini-scrape-failed-${type}`);
       throw error;
     }
   }
 
-  private async inputPromptToGemini(page: Page, prompt: string): Promise<void> {
+  private async inputPromptToGemini(page: Page, prompt: string, type: string): Promise<void> {
     try {
-      this.logger.log('📝 Looking for Gemini input area...');
+      this.logger.log(`📝 [${type}] Looking for Gemini input area...`);
       const inputSelector =
         'div.ql-editor.textarea.new-input-ui[data-placeholder="Gemini에게 물어보기"][role="textbox"][contenteditable="true"]';
 
-      // 요소가 나타날 때까지 기다립니다.
       await page.waitForSelector(inputSelector, { state: 'visible', timeout: 10000 });
-      this.logger.log('✅ Gemini 입력 영역을 찾았습니다.');
+      this.logger.log(`✅ [${type}] Gemini 입력 영역을 찾았습니다.`);
 
       await page.fill(inputSelector, prompt);
-      this.logger.log('✍️ 프롬프트를 Gemini 입력 영역에 성공적으로 입력했습니다.');
-      await page.waitForTimeout(3000);
-
+      this.logger.log(`✍️ [${type}] 프롬프트를 Gemini 입력 영역에 성공적으로 입력했습니다.`);
+      await page.waitForTimeout(1000);
       await page.keyboard.press('Enter');
+      this.logger.log(`✅ [${type}] 프롬프트가 제출되었습니다.`);
 
-      // --- Gemini 응답 기다리기 시작 ---
-      this.logger.log('⏳ Gemini의 응답을 기다리는 중입니다...');
+      this.logger.log(`⏳ [${type}] Gemini의 응답을 기다리는 중입니다...`);
 
-      // 1. Lottie 애니메이션의 data-test-lottie-animation-status가 "completed"로 변경될 때까지 기다립니다.
-      // 이 셀렉터는 응답을 생성하는 아바타의 Lottie 애니메이션 요소를 가리킵니다.
       const lottieAnimationCompletedSelector =
         'div.avatar_primary_animation.is-gpi-avatar[data-test-lottie-animation-status="completed"]';
 
-      this.logger.log(`🔍 Lottie 애니메이션이 'completed' 상태가 될 때까지 기다리는 중입니다...`);
-      try {
-        await page.waitForSelector(lottieAnimationCompletedSelector, {
-          state: 'attached',
-          timeout: 60000,
-        }); // 1분 대기
-        this.logger.log('✅ Lottie 애니메이션 상태가 "completed"로 변경되었습니다.');
-      } catch (error) {
-        this.logger.warn(
-          '⚠️ Lottie 애니메이션이 시간 내에 "completed" 상태가 되지 않았습니다. 응답이 없거나 셀렉터가 잘못되었을 수 있습니다.',
-          error,
-        );
-      }
+      this.logger.log(
+        `🔍 [${type}] Lottie 애니메이션이 'completed' 상태가 될 때까지 기다리는 중입니다...`,
+      );
+
+      // 💡 2. Lottie 애니메이션 대기 시간 적용
+      await page.waitForSelector(lottieAnimationCompletedSelector, {
+        state: 'attached',
+        timeout: this.TIMEOUT_MILLIS,
+      });
+      this.logger.log(`✅ [${type}] Lottie 애니메이션 상태가 "completed"로 변경되었습니다.`);
 
       const chatHistoryContainerSelector =
         '#chat-history infinite-scroller[data-test-id="chat-history-container"]';
@@ -147,7 +155,7 @@ export class YoutubeChannelService {
 
       let isCompletedWithKeyword = false;
       const startTimeKeywordCheck = Date.now();
-      const timeoutKeywordCheck = 120000; // 추가 2분 대기 (응답이 길 수 있으므로 충분히)
+      const timeoutKeywordCheck = this.TIMEOUT_MILLIS; // 추가 4분 대기 (응답이 길 수 있으므로 충분히)
 
       while (!isCompletedWithKeyword && Date.now() - startTimeKeywordCheck < timeoutKeywordCheck) {
         const lastModelResponseElement = await page.$(lastModelResponseTextSelector);
@@ -171,10 +179,7 @@ export class YoutubeChannelService {
       }
 
       if (!isCompletedWithKeyword) {
-        this.logger.error(
-          `❌ 시간 초과: '${completionKeyword}' 문자열이 추가 ${timeoutKeywordCheck / 1000}초 내에 최신 응답에 나타나지 않았습니다.`,
-        );
-        throw new Error('Gemini 응답 완료 키워드 최종 확인 시간 초과');
+        throw new Error(`[${type}] Gemini 응답 완료 키워드 최종 확인 시간 초과`);
       }
 
       const geminiResponseText = await page.$eval(lastModelResponseTextSelector, (el) =>
@@ -182,16 +187,17 @@ export class YoutubeChannelService {
       );
 
       if (!geminiResponseText) {
-        throw new Error('응답을 찾을 수 없습니다.');
+        throw new Error(`[${type}] 최종 응답 텍스트를 찾을 수 없습니다.`);
       }
 
       const rawString = geminiResponseText.replace('JSON', '');
       const rawJSON = JSON.parse(rawString);
-      console.log('text', rawJSON);
+      console.log(`[${type}] Response JSON:`, rawJSON);
 
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(2000);
     } catch (error) {
-      this.logger.error('Gemini input area not found:', error);
+      this.logger.error(`❌ [${type}] Error in inputPromptToGemini:`, error);
+      throw error;
     }
   }
 

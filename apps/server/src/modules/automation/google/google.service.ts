@@ -8,7 +8,7 @@ import { Page } from 'playwright';
 export class GoogleService {
   private readonly logger = new Logger(GoogleService.name);
   private readonly DEBUG_PATH = path.resolve(process.cwd(), 'playwright/debug');
-  private readonly USER_DATA_PATH = path.resolve(process.cwd(), 'playwright/user_data');
+  private readonly USER_DATA_PATH = path.resolve(process.cwd(), 'playwright/user-data');
 
   public async googleLogin() {
     this.logger.log('🚀 Starting scraping job based on Crawlee...');

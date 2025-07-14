@@ -2,6 +2,7 @@ import { Button } from '@src/components/Button';
 import { type ScrapChannel } from '@src/store/channelAtoms';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
+import Image from 'next/image';
 import { MdClose, MdImage } from 'react-icons/md';
 
 interface ChannelScrapItemProps {
@@ -41,7 +42,7 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
           })}
         >
           {channel.thumbnail ? (
-            <img
+            <Image
               src={channel.thumbnail}
               alt={channel.title}
               className={css({
@@ -49,6 +50,8 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
                 h: '100%',
                 objectFit: 'cover',
               })}
+              width={60}
+              height={60}
             />
           ) : (
             <MdImage

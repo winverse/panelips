@@ -1,2 +1,2 @@
 export * from './youtubeVideoJsonPrompt.js';
-export * from './youtubeVideoSummaryPrompt.js';
+export * from './youtubeVideoScriptPrompt.js';
