@@ -6,6 +6,7 @@ import { Prisma } from '@packages/database/mongo';
 export class YoutubeRepository {
   constructor(private readonly mongo: MongoService) {}
 
+  // channel
   public async findChannelByUrl(url: string) {
     return this.mongo.youtubeChannel.findFirst({ where: { url } });
   }
@@ -32,5 +33,80 @@ export class YoutubeRepository {
         url: true,
       },
     });
+  }
+
+  // video
+  public async createVideo(data: Prisma.YoutubeVideoCreateInput) {
+    return this.mongo.youtubeVideo.create({
+      data,
+    });
+  }
+
+  public async findVideoByVideoId(videoId: string) {
+    return this.mongo.youtubeVideo.findFirst({
+      where: {
+        videoId,
+      },
+    });
+  }
+
+  public async findVideoByUrl(url: string) {
+    return this.mongo.youtubeVideo.findFirst({
+      where: {
+        url,
+      },
+    });
+  }
+
+  public async updateVideo(
+    where: Prisma.YoutubeVideoWhereUniqueInput,
+    data: Prisma.YoutubeVideoUpdateInput,
+  ) {
+    return this.mongo.youtubeVideo.update({
+      where,
+      data,
+    });
+  }
+
+  // script
+  public async createVideoScript(data: Prisma.YoutubeVideoScriptCreateInput) {
+    return this.mongo.youtubeVideoScript.create({
+      data,
+    });
+  }
+
+  public async findVideoScriptByUrl(url: string) {
+    const video = await this.mongo.youtubeVideo.findFirst({
+      where: { url },
+      include: { script: true },
+    });
+    if (!video) return null;
+    return video.script;
+  }
+
+  public async isCreatedScript(url: string) {
+    const result = await this.findVideoScriptByUrl(url);
+    return !!result;
+  }
+
+  // json
+  public async createVideoJson(data: Prisma.YoutubeVideoJsonCreateInput) {
+    return this.mongo.youtubeVideoJson.create({
+      data,
+    });
+  }
+
+  public async findVideoJsonByUrl(url: string) {
+    const video = await this.mongo.youtubeVideo.findFirst({
+      where: { url },
+      include: { json: true },
+    });
+    if (!video) return null;
+    return video.json;
+  }
+
+  public async isCreatedJson(url: string) {
+    const result = await this.findVideoJsonByUrl(url);
+    return !!result;
   }
 }

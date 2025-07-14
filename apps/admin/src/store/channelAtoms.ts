@@ -80,4 +80,5 @@ export type ScrapChannel = {
   url: string;
   thumbnail?: string | undefined;
   description: string;
+  channelId: string;
 };

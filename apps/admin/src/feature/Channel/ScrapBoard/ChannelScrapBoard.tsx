@@ -48,11 +48,13 @@ export function ChannelScrapBoard() {
       toast.info(`${channels.length}개 채널의 Gemini 분석을 시작합니다...`);
 
       for (const channel of channels) {
+        console.log('channel', channel);
         try {
           const result = await scrapChannel({
             title: channel.title,
             description: channel.description,
             url: channel.url,
+            channelId: channel.channelId,
           });
 
           if (result.success) {

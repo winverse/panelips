@@ -15,12 +15,13 @@ export function createYoutubeChannelRouter(app: INestApplication) {
           title: z.string(),
           description: z.string(),
           url: z.string(),
+          channelId: z.string(),
         }),
       )
       .mutation(async ({ input }) => {
         try {
-          const { title, description, url } = input;
-          await youtubeChannelService.youtubeChannelScrap({ title, description, url });
+          const { title, description, url, channelId } = input;
+          await youtubeChannelService.youtubeChannelScrap({ title, description, url, channelId });
           return { success: true, message: '유튜브 채널 스크랩 작업이 시작되었습니다.' };
         } catch (error) {
           console.error('유튜브 채널 스크랩 중 오류 발생:', error);

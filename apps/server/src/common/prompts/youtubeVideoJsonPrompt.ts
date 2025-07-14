@@ -4,10 +4,11 @@ interface CreateYoutubeJsonPromptInput {
   url: string;
   description: string;
   title: string;
+  channelId: string;
 }
 
 export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): string {
-  const { url, description, title } = input;
+  const { url, description, title, channelId } = input;
   const videoId = extractYouTubeVideoId(url);
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 데이터 분석 AI입니다. 당신의 임무는 제공된 유튜브 영상 정보에서 **가장 가치 있는 핵심 인사이트만을 선별(Curation)**하여, 비평 및 연구 목적으로 사용될 데이터를 생성하는 것입니다. 모든 결과물은 저작권의 '공정 이용' 원칙을 철저히 준수해야 합니다.
@@ -44,11 +45,12 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 {
     "isRelatedAsset": true,
     "videoInfo": {
-        "videoId": ${videoId} // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)" 맞지 않으면 수정 바람,
+        "videoId": "${videoId}" // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)", 이 형식과 맞지 않으면 수정 바람,
         "url": "분석 대상 영상 URL과 동일한 값",
         "title": "유튜브 영상 제목",
-        "channelName": "유튜브 채널 이름",
         "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
+        "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터
+        "channelId": "${channelId}"
         "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
     },
     "panels": [
@@ -91,7 +93,15 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 \`\`\`json
 {
 "isRelatedAsset": false,
-"youtubeVideo": null,
+"videoInfo": {
+    "videoId": "${videoId}" // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)", 이 형식과 맞지 않으면 수정 바람,
+    "url": "분석 대상 영상 URL과 동일한 값",
+    "title": "유튜브 영상 제목",
+    "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
+    "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터 없으면 null 처리
+    "channelId": "${channelId}"
+    "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
+},
 "panels": null,
 "insights": null,
 "reason": "주식, 환율, 원자재 등 투자 자산과 직접 관련된 구체적인 예측이나 의견이 없다고 판단된 이유",

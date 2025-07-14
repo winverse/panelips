@@ -97,6 +97,7 @@ export class YoutubeService implements YoutubeServiceInterface {
             description: video.snippet?.description, // 잘리지 않은 전체 설명
             thumbnail:
               video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
+            channelId,
           };
         })
         .filter(
@@ -104,6 +105,7 @@ export class YoutubeService implements YoutubeServiceInterface {
         );
 
       this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
+
       return videoInfo.slice(0, 1);
     } catch (error: any) {
       this.logger.error(`새 유튜브 동영상 가져오는 중 오류 발생: ${error.message}`, error.stack);

@@ -15,4 +15,5 @@ export type YoutubeVideo = {
   url: string;
   description: string;
   thumbnail: string;
+  channelId: string;
 };
