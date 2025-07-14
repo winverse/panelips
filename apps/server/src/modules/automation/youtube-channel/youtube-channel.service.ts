@@ -140,7 +140,7 @@ export class YoutubeChannelService {
         const json = await this.handleGeminiScrape(page, request.url, request.userData);
         if (type === 'json') {
           const { videoInfo } = json as JsonPromptResult;
-          const video = await this.youtubeRepository.findVideoByVideoId(videoInfo.videoId);
+          const video = await this.youtubeRepository.findVideoByVideoId(videoId);
           if (!video) {
             throw new Error(`Video with videoId ${videoInfo.videoId} not found.`);
           }
@@ -165,8 +165,8 @@ export class YoutubeChannelService {
         }
 
         if (type === 'script') {
-          const { videoInfo, summary } = json as ScriptPromptResult;
-          const video = await this.youtubeRepository.findVideoByVideoId(videoInfo.videoId);
+          const { videoInfo } = json as ScriptPromptResult;
+          const video = await this.youtubeRepository.findVideoByVideoId(videoId);
           if (!video) {
             throw new Error(`Video with videoId ${videoInfo.videoId} not found.`);
           }
