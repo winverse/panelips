@@ -40,14 +40,29 @@ export function ChannelScrapBoard() {
       return;
     }
 
+    // Filter out channels that are already completed
+    const channelsToProcess = channels.filter(
+      (channel) => !(channel.isScriptAnalysisComplete && channel.isJsonAnalysisComplete),
+    );
+    const skippedCount = channels.length - channelsToProcess.length;
+
+    if (channelsToProcess.length === 0) {
+      toast.info('모든 채널의 분석이 이미 완료되었습니다.');
+      return;
+    }
+
     setIsProcessing(true);
     let successCount = 0;
     let failCount = 0;
 
     try {
-      toast.info(`${channels.length}개 채널의 Gemini 분석을 시작합니다...`);
+      let message = `${channelsToProcess.length}개 채널의 Gemini 분석을 시작합니다...`;
+      if (skippedCount > 0) {
+        message += ` (${skippedCount}개 채널은 이미 완료되어 건너뜁니다)`;
+      }
+      toast.info(message);
 
-      for (const channel of channels) {
+      for (const channel of channelsToProcess) {
         console.log('channel', channel);
         try {
           const result = await scrapChannel({
