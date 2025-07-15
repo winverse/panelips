@@ -2,12 +2,12 @@ import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
 import { useTooltip } from '@src/hooks/useTooltip';
 import { useTRPC } from '@src/lib/trpc';
-import { addScrapChannelAtom, removeChannelAtom, ScrapChannel } from '@src/store';
+import { addScrapChannelAtom, removeChannelAtom, ScrapVideo } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useQuery } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
-import { MdDownload, MdMailOutline, MdMovie } from 'react-icons/md';
+import { MdMailOutline, MdMovie } from 'react-icons/md';
 import { toast } from 'react-toastify';
 
 type ChannelItemProps = {
@@ -30,7 +30,7 @@ export function ChannelItem({ channel }: ChannelItemProps) {
     position: 'top',
   });
 
-  const handelAddScrapChannel = (channels: ScrapChannel[]) => {
+  const _handelAddScrapChannel = (channels: ScrapVideo[]) => {
     addScrapChannel(channels);
     toast.success('스크랩 대상에 추가 되었습니다.');
   };
@@ -65,6 +65,7 @@ export function ChannelItem({ channel }: ChannelItemProps) {
               borderRadius: '20px',
               fontSize: '0.8rem',
               fontWeight: '500',
+              whiteSpace: 'nowrap',
             })}
           >
             <Spinner size="sm" />
@@ -89,6 +90,7 @@ export function ChannelItem({ channel }: ChannelItemProps) {
                 borderRadius: '20px',
                 fontSize: '0.8rem',
                 fontWeight: '500',
+                whiteSpace: 'nowrap',
               })}
             >
               <span
@@ -100,16 +102,6 @@ export function ChannelItem({ channel }: ChannelItemProps) {
               </span>
               <span>{data.length > 0 ? `${data.length}개 신규 영상` : '신규 영상 없음'}</span>
             </div>
-            <Button
-              size="sm"
-              variant="primary"
-              type="button"
-              onClick={() => handelAddScrapChannel(data)}
-              className={css({ display: 'flex', alignItems: 'center', gap: '0.25rem' })}
-            >
-              <MdDownload />
-              스크랩
-            </Button>
           </div>
         )}
       </li>

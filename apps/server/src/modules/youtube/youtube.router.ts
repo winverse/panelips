@@ -23,12 +23,14 @@ export function createYoutubeRouter(app: INestApplication) {
             thumbnail: z.string().optional(),
             description: z.string(),
             channelId: z.string(),
+            isJsonAnalysisComplete: z.boolean(),
+            isScriptAnalysisComplete: z.boolean(),
           }),
         ),
       )
       .query(async ({ input }) => {
         try {
-          return await youtubeService.getNewVideos(input.url);
+          return youtubeService.getNewVideos(input.url);
         } catch (error) {
           console.error('새 유튜브 동영상 가져오는 중 오류 발생:', error);
           throw new Error(`새 동영상 가져오기 실패: ${error.message || '알 수 없는 오류'}`);
@@ -39,7 +41,7 @@ export function createYoutubeRouter(app: INestApplication) {
       .meta({ description: '채널 URL 불러오기' })
       .output(z.array(z.string()))
       .query(async () => {
-        return await youtubeService.getChannelsUrl();
+        return youtubeService.getChannelsUrl();
       }),
   });
 }

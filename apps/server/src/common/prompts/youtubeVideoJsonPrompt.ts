@@ -98,7 +98,7 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
     "url": "분석 대상 영상 URL과 동일한 값",
     "title": "유튜브 영상 제목",
     "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
-    "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터 없으면 null 처리
+    "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터 없으면 null 처리, 띄어쓰기 없도록
     "channelId": "${channelId}"
     "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
 },

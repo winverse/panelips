@@ -16,4 +16,6 @@ export type YoutubeVideo = {
   description: string;
   thumbnail: string;
   channelId: string;
+  isJsonAnalysisComplete: boolean;
+  isScriptAnalysisComplete: boolean;
 };

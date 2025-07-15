@@ -44,7 +44,7 @@ export class YoutubeService implements YoutubeServiceInterface {
         publishedAfter: publishedAfter,
         type: ['video'],
         order: 'date',
-        maxResults: 50,
+        maxResults: 20,
       });
 
       const searchItems = searchResponse.data.items;
@@ -66,7 +66,7 @@ export class YoutubeService implements YoutubeServiceInterface {
       const detailsResponse = await this.youtubeClient.videos.list({
         part: ['contentDetails', 'id', 'snippet'], // snippet 추가
         id: videoIds,
-        maxResults: 50,
+        maxResults: 10,
       });
 
       const videosWithDetails = detailsResponse.data.items;
@@ -106,7 +106,15 @@ export class YoutubeService implements YoutubeServiceInterface {
 
       this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
 
-      return videoInfo.slice(0, 1);
+      const promises = videoInfo.map(async (video) => {
+        return {
+          ...video,
+          isJsonAnalysisComplete: await this.isJsonAnalysisComplete(video.url),
+          isScriptAnalysisComplete: await this.isScriptAnalysisComplete(video.url),
+        };
+      });
+
+      return Promise.all(promises);
     } catch (error: any) {
       this.logger.error(`새 유튜브 동영상 가져오는 중 오류 발생: ${error.message}`, error.stack);
 
@@ -245,5 +253,15 @@ export class YoutubeService implements YoutubeServiceInterface {
   public async getChannelsUrl(): Promise<string[]> {
     const channels = await this.youtubeRepository.findChannels();
     return channels.slice(0, 1).map((channel) => channel.url);
+  }
+
+  public async isJsonAnalysisComplete(url: string): Promise<boolean> {
+    const video = await this.youtubeRepository.findVideoByUrl(url, { json: true });
+    return !!video?.json;
+  }
+
+  public async isScriptAnalysisComplete(url: string): Promise<boolean> {
+    const video = await this.youtubeRepository.findVideoByUrl(url, { script: true });
+    return !!video?.script;
   }
 }

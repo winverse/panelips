@@ -5,7 +5,7 @@ export const channelsAtom = atom<string[]>([]);
 
 export const channelUrlAtom = atom<string>('');
 
-export const scrapTargetChannelsAtom = atom<ScrapChannel[]>([]);
+export const scrapTargetChannelsAtom = atom<ScrapVideo[]>([]);
 
 export const isScrapingInProgressAtom = atom<boolean>(false);
 
@@ -53,7 +53,7 @@ export const removeChannelAtom = atom(null, (get, set, url: string) => {
   );
 });
 
-export const addScrapChannelAtom = atom(null, (get, set, channels: ScrapChannel[]) => {
+export const addScrapChannelAtom = atom(null, (get, set, channels: ScrapVideo[]) => {
   const current = get(scrapTargetChannelsAtom);
   const uniqueChannels = uniqBy([...current, ...channels], (channel) => channel.url);
   set(scrapTargetChannelsAtom, uniqueChannels);
@@ -75,10 +75,12 @@ export const clearAllScrapTargetChannelsAtom = atom(null, (_get, set) => {
   set(scrapTargetChannelsAtom, []);
 });
 
-export type ScrapChannel = {
+export type ScrapVideo = {
   title: string;
   url: string;
   thumbnail?: string | undefined;
   description: string;
   channelId: string;
+  isScriptAnalysisComplete: boolean;
+  isJsonAnalysisComplete: boolean;
 };

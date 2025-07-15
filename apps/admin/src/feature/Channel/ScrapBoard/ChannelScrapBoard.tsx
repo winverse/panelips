@@ -170,7 +170,7 @@ export function ChannelScrapBoard() {
         })}
       >
         {channels.map((channel) => (
-          <ChannelScrapItem key={channel.url} channel={channel} onRemove={handleRemoveChannel} />
+          <ChannelScrapItem key={channel.url} video={channel} onRemove={handleRemoveChannel} />
         ))}
       </div>
     </div>

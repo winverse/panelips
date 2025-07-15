@@ -1,6 +1,6 @@
 import { Button } from '@src/components/Button';
 import { useTRPC } from '@src/lib/trpc';
-import { addScrapChannelAtom, ScrapChannel } from '@src/store';
+import { addScrapChannelAtom, ScrapVideo } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useQueries } from '@tanstack/react-query';
@@ -29,7 +29,7 @@ export function ChannelList({ channels }: ChannelListProps) {
 
   const handleBulkScrap = () => {
     // Check if all queries are successful and have data
-    const allChannelData: ScrapChannel[] = [];
+    const allChannelData: ScrapVideo[] = [];
     let hasError = false;
     let errorMessage = '일부 채널 정보를 가져오는데 실패했습니다.';
 
@@ -77,7 +77,6 @@ export function ChannelList({ channels }: ChannelListProps) {
         justifyContent: 'left',
         alignItems: 'center',
         flexDir: 'column',
-        w: '40%',
         border: '1px solid',
         borderColor: 'border.primary',
         borderRadius: '8px',
@@ -103,7 +102,7 @@ export function ChannelList({ channels }: ChannelListProps) {
           저장된 채널
         </h3>
         <Button
-          size="md"
+          size="sm"
           variant="primary"
           type="button"
           onClick={handleBulkScrap}

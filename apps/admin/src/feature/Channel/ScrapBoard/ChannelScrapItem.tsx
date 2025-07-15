@@ -1,33 +1,89 @@
 import { Button } from '@src/components/Button';
-import { type ScrapChannel } from '@src/store/channelAtoms';
+import { type ScrapVideo } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import Image from 'next/image';
+import { BsFiletypeJson } from 'react-icons/bs';
 import { MdClose, MdImage } from 'react-icons/md';
+import { TbScript } from 'react-icons/tb';
 
 interface ChannelScrapItemProps {
-  channel: ScrapChannel;
+  video: ScrapVideo;
   onRemove: (url: string) => void;
 }
 
-export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
+export function ChannelScrapItem({ video, onRemove }: ChannelScrapItemProps) {
+  const isScriptCompleted = video.isScriptAnalysisComplete;
+  const isJsonCompleted = video.isJsonAnalysisComplete;
+
   return (
     <div
       className={css({
+        position: 'relative',
         bg: 'background.primary',
         border: '1px solid',
         borderColor: 'border.primary',
         borderRadius: '12px',
         p: '1rem',
         transition: 'all 0.2s ease',
+        opacity: isJsonCompleted && isScriptCompleted ? 0.6 : 1,
         _hover: {
           borderColor: 'border.secondary',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         },
       })}
     >
+      {/* Badges */}
+      <div
+        className={css({
+          position: 'absolute',
+          top: '-8px',
+          left: '-8px',
+          display: 'flex',
+          gap: '4px',
+          zIndex: 10,
+        })}
+      >
+        {isScriptCompleted && (
+          <div
+            className={css({
+              bg: 'green.500',
+              color: 'white',
+              borderRadius: '50%',
+              w: '20px',
+              h: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            })}
+            title="Script analysis completed"
+          >
+            <TbScript />
+          </div>
+        )}
+        {isJsonCompleted && (
+          <div
+            className={css({
+              bg: 'blue.500',
+              color: 'white',
+              borderRadius: '50%',
+              w: '20px',
+              h: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            })}
+            title="JSON analysis completed"
+          >
+            <BsFiletypeJson />
+          </div>
+        )}
+      </div>
       <div className={flex({ direction: 'row', gap: '0.75rem' })}>
-        {/* Thumbnail */}
         <div
           className={css({
             flexShrink: 0,
@@ -41,10 +97,10 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
             overflow: 'hidden',
           })}
         >
-          {channel.thumbnail ? (
+          {video.thumbnail ? (
             <Image
-              src={channel.thumbnail}
-              alt={channel.title}
+              src={video.thumbnail}
+              alt={video.title}
               className={css({
                 w: '100%',
                 h: '100%',
@@ -81,9 +137,9 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             })}
-            title={channel.title}
+            title={video.title}
           >
-            {channel.title}
+            {video.title}
           </h4>
           <a
             className={css({
@@ -94,10 +150,10 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             })}
-            href={channel.url}
+            href={video.url}
             target="_blank"
           >
-            {`${channel.url.slice(0, 30)}...`}
+            {`${video.url.slice(0, 30)}...`}
           </a>
         </div>
 
@@ -109,7 +165,7 @@ export function ChannelScrapItem({ channel, onRemove }: ChannelScrapItemProps) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onRemove(channel.url)}
+            onClick={() => onRemove(video.url)}
             className={css({
               p: '0.375rem',
               minW: 'auto',

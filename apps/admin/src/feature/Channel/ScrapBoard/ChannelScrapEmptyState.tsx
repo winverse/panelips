@@ -6,7 +6,7 @@ export function ChannelScrapEmptyState() {
   return (
     <div
       className={flex({
-        w: '60%',
+        w: '100%',
       })}
     >
       <div

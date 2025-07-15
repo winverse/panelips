@@ -2,6 +2,10 @@ import { MongoService } from '@core/database/mongo/mongo.service.js';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@packages/database/mongo';
 
+type YoutubeVideoWithInclude<T extends Prisma.YoutubeVideoInclude> = Prisma.YoutubeVideoGetPayload<{
+  include: T;
+}>;
+
 @Injectable()
 export class YoutubeRepository {
   constructor(private readonly mongo: MongoService) {}
@@ -50,12 +54,17 @@ export class YoutubeRepository {
     });
   }
 
-  public async findVideoByUrl(url: string) {
-    return this.mongo.youtubeVideo.findFirst({
+  public async findVideoByUrl<T extends Prisma.YoutubeVideoInclude>(
+    url: string,
+    include?: T,
+  ): Promise<YoutubeVideoWithInclude<T> | null> {
+    const video = await this.mongo.youtubeVideo.findFirst({
       where: {
         url,
       },
+      include,
     });
+    return video as YoutubeVideoWithInclude<T> | null;
   }
 
   public async updateVideo(
@@ -84,7 +93,7 @@ export class YoutubeRepository {
     return video.script;
   }
 
-  public async isCreatedScript(url: string) {
+  public async isScriptAnalysisComplete(url: string) {
     const result = await this.findVideoScriptByUrl(url);
     return !!result;
   }
@@ -105,7 +114,7 @@ export class YoutubeRepository {
     return video.json;
   }
 
-  public async isCreatedJson(url: string) {
+  public async isJsonAnalysisComplete(url: string) {
     const result = await this.findVideoJsonByUrl(url);
     return !!result;
   }
