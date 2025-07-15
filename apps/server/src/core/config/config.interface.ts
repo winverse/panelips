@@ -5,6 +5,7 @@ export type Config = {
   readonly app: AppConfig;
   readonly google: GoogleConfig;
   readonly db: DBConfig;
+  readonly redis: RedisConfig;
 };
 
 export type AppConfig = {
@@ -18,4 +19,9 @@ export type GoogleConfig = {
 export type DBConfig = {
   readonly provider: 'mongodb';
   readonly url: string;
+};
+
+export type RedisConfig = {
+  readonly host: string;
+  readonly port: number;
 };

@@ -34,6 +34,10 @@ export const configuration = (): Config => {
         provider: rawConfig.DATABASE_PROVIDER as 'mongodb',
         url: rawConfig.DATABASE_URL,
       },
+      redis: {
+        host: rawConfig.REDIS_HOST,
+        port: Number(rawConfig.REDIS_PORT),
+      },
     };
 
     return validateConfig(config);

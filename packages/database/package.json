@@ -9,6 +9,10 @@
     "./mongo": {
       "import": "./src/mongo/generated/index.js",
       "types": "./src/mongo/generated/index.d.ts"
+    },
+    "./redis": {
+      "import": "./src/redis/index.js",
+      "types": "./src/redis/index.d.ts"
     }
   },
   "scripts": {

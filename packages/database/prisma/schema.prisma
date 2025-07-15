@@ -33,7 +33,7 @@ model YoutubeVideo {
   url           String @unique
   description   String
   summary       String
-  relatedStocks Json
+  relatedStocks   Json?
 
   isProcessed     Boolean         @default(false)
   aiProcessStatus AiProcessStatus @default(PENDING)

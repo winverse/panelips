@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
+import { winstonLogger } from './common/configs/winston.config.js';
 import { TrpcRouter } from './trpc/trpc.router.js';
 
 async function bootstrap() {
@@ -9,6 +10,9 @@ async function bootstrap() {
     new FastifyAdapter({
       maxParamLength: 5000,
     }),
+    {
+      logger: winstonLogger,
+    },
   );
 
   const trpcRouter = app.get(TrpcRouter);

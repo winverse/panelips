@@ -6,6 +6,7 @@ import {
   YoutubeChannelScrapArgs,
 } from '@modules/automation/youtube-channel/youtube-channel.interface.js';
 import { YoutubeRepository } from '@modules/youtube/index.js';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ONE_MINUTE_AS_S, ONE_SECOND_AS_MS } from '@src/common/constants/time.js';
 import {
@@ -13,6 +14,7 @@ import {
   createYoutubeVideoScriptPrompt,
 } from '@src/common/prompts/index.js';
 import { extractYouTubeVideoId } from '@src/common/utils/index.js';
+import { Queue } from 'bullmq';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
 
@@ -21,7 +23,7 @@ export class YoutubeChannelService {
   private readonly logger = new Logger(YoutubeChannelService.name);
 
   // --- 💡 타임아웃 설정 변수 ---
-  private readonly TIMEOUT_MINUTES = 4;
+  private readonly TIMEOUT_MINUTES = 3; // 3분으로 설정
   private readonly TIMEOUT_SECONDS = this.TIMEOUT_MINUTES * ONE_MINUTE_AS_S;
   private readonly TIMEOUT_MILLIS = this.TIMEOUT_SECONDS * ONE_SECOND_AS_MS;
   // --------------------------
@@ -45,7 +47,22 @@ export class YoutubeChannelService {
     `${this.LAST_CONVERSATION_SELECTOR} button[aria-label="코드 복사"]`;
   private readonly COMPLETION_KEYWORD = '"response": "completed"';
 
-  constructor(private readonly youtubeRepository: YoutubeRepository) {}
+  constructor(
+    private readonly youtubeRepository: YoutubeRepository,
+    @InjectQueue('scraping-queue') private readonly scrapingQueue: Queue,
+  ) {}
+
+  public async addScrapingJob(data: YoutubeChannelScrapArgs) {
+    await this.scrapingQueue.add('scrape-youtube-channel', data, {
+      attempts: 3, // 실패 시 3번 재시도
+      backoff: {
+        type: 'exponential',
+        delay: 1000, // 1초, 2초, 4초 간격으로 재시도
+      },
+    });
+    this.logger.log(`Scraping job added to queue for URL: ${data.url}`);
+    return { success: true, message: '스크랩 작업이 큐에 추가되었습니다.' };
+  }
 
   public async youtubeChannelScrap({
     title,
@@ -132,6 +149,14 @@ export class YoutubeChannelService {
           channel: 'chrome',
           headless: false,
           args: [
+            '--no-sandbox', // 샌드박스 비활성화
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // /dev/shm 파티션 사용 비활성화
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // 싱글 프로세스 모드 (메모리 사용량 감소에 도움될 수 있음)
+            '--disable-gpu', // GPU 하드웨어 가속 비활성화
             '--proxy-server=direct://',
             '--proxy-bypass-list=*',
             '--disable-blink-features=AutomationControlled',
@@ -149,19 +174,40 @@ export class YoutubeChannelService {
       ],
 
       requestHandler: async ({ page, request, log }) => {
-        const { type } = request.userData;
-        log.info(`[Processing started] ${request.url} - Type: ${type}`);
-        const json = await this.handleGeminiScrape(page, request.url, request.userData);
+        const { type, prompt } = request.userData;
+        const { url } = request;
+        log.info(`[Processing started] ${url} - Type: ${type}`);
 
-        const video = await this.youtubeRepository.findVideoByVideoId(videoId);
-        if (!video) {
-          throw new Error(`Video with videoId ${videoId} not found.`);
-        }
+        try {
+          const result = await this.handleGeminiScrape(page, url, request.userData);
 
-        if (type === 'json') {
-          await this.handleJsonPromptResult(json as JsonPromptResult, video.id);
-        } else if (type === 'script') {
-          await this.handleScriptPromptResult(json as ScriptPromptResult, video.id);
+          const video = await this.youtubeRepository.findVideoByVideoId(videoId);
+          if (!video) {
+            // 이 경우는 거의 발생하지 않아야 하지만, 방어적으로 로깅합니다.
+            throw new Error(
+              `Database Error: Video with videoId ${videoId} not found after scraping.`,
+            );
+          }
+
+          if (type === 'json') {
+            await this.handleJsonPromptResult(result as JsonPromptResult, video.id);
+          } else if (type === 'script') {
+            await this.handleScriptPromptResult(result as ScriptPromptResult, video.id);
+          }
+        } catch (error) {
+          this.logger.error(
+            {
+              message: `[Scraping Failed] An error occurred during request handling for ${url} (Type: ${type})`,
+              videoUrl: url,
+              promptType: type,
+              promptContent: prompt,
+              error: error.stack,
+            },
+            error.stack,
+          );
+          await this.saveDebugInfo(page, `request-handler-failed-${type}`);
+          // 에러를 다시 던져서 crawler의 failedRequestHandler가 동작하도록 합니다.
+          throw error;
         }
       },
       failedRequestHandler: async ({ page, request, error }) => {
@@ -236,7 +282,7 @@ export class YoutubeChannelService {
       await this.fillPrompt(page, prompt, type);
       await this.submitPrompt(page, type);
       await this.waitForResponse(page, type);
-      return await this.getGeminiResponse(page, type);
+      return await this.getGeminiResponse(page, type, prompt);
     } catch (error) {
       this.logger.error(`❌ [${type}] Error in inputPromptToGemini:`, error);
       throw error;
@@ -304,36 +350,68 @@ export class YoutubeChannelService {
     }
   }
 
-  private async getGeminiResponse(page: Page, type: string) {
-    const geminiResponseText = await page.$eval(this.LAST_MODEL_RESPONSE_SELECTOR, (el) =>
-      el.textContent?.trim(),
-    );
+  private async getGeminiResponse(page: Page, type: string, prompt: string) {
+    this.logger.log(`🖱️ [${type}] 응답에서 '코드 복사' 버튼을 찾고 클릭합니다...`);
 
-    if (!geminiResponseText) {
-      throw new Error(`[${type}] 최종 응답 텍스트를 찾을 수 없습니다.`);
+    try {
+      // 1. '코드 복사' 버튼을 찾아서 클릭하는 로직 추가
+      await page.waitForSelector(this.COPY_BUTTON_SELECTOR, { state: 'visible', timeout: 10000 });
+      await page.click(this.COPY_BUTTON_SELECTOR);
+      this.logger.log(`✅ [${type}] '코드 복사' 버튼을 성공적으로 클릭했습니다.`);
+
+      // 2. 클립보드에 복사될 시간을 잠시 대기
+      await page.waitForTimeout(500); // 0.5초 대기
+    } catch (error) {
+      this.logger.error(
+        `[Copy Button Error] '코드 복사' 버튼을 찾거나 클릭하는 데 실패했습니다. (type: ${type})`,
+        error.stack,
+      );
+      await this.saveDebugInfo(page, `copy-button-failed-${type}`);
+      throw new Error(
+        `[${type}] '코드 복사' 버튼을 찾을 수 없습니다. Gemini 응답에 코드 블록이 포함되었는지 확인하세요.`,
+      );
     }
-
-    await page.waitForTimeout(2000);
-
-    this.logger.log(`🔍 [${type}] '${this.COPY_BUTTON_SELECTOR}' 복사 버튼을 찾는 중입니다...`);
-    await page.waitForSelector(this.COPY_BUTTON_SELECTOR, { state: 'visible', timeout: 10000 });
-    this.logger.log(`✅ [${type}] 복사 버튼을 찾았습니다.`);
-
-    await page.click(this.COPY_BUTTON_SELECTOR);
-    this.logger.log(`🖱️ [${type}] 응답 내용 복사 버튼을 클릭했습니다.`);
-
-    await page.waitForTimeout(500);
 
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
     this.logger.log(`📋 [${type}] 클립보드 내용을 성공적으로 읽었습니다.`);
 
     if (!clipboardContent) {
+      this.logger.error(
+        {
+          message: `[Clipboard Empty] Clipboard is empty for type: ${type}`,
+          promptContent: prompt,
+        },
+        'Clipboard Empty',
+      );
       throw new Error(`[${type}] 클립보드에서 내용을 읽어오는 데 실패했거나 내용이 비어있습니다.`);
     }
 
-    const parsedJson = JSON.parse(clipboardContent);
-    this.logger.log(`✅ [${type}] 클립보드 내용을 JSON으로 성공적으로 파싱했습니다.`);
-    return parsedJson;
+    // 원본 내용을 먼저 로그로 남깁니다.
+    this.logger.log({
+      message: `[Raw Clipboard Content] for type: ${type}`,
+      content: clipboardContent,
+    });
+
+    try {
+      const parsedJson = JSON.parse(clipboardContent);
+      this.logger.log(`✅ [${type}] 클립보드 내용을 JSON으로 성공적으로 파싱했습니다.`);
+      this.logger.debug({
+        message: `[Debug] Parsed JSON for ${type}`,
+        parsedJson,
+      });
+      return parsedJson;
+    } catch (error) {
+      this.logger.error(
+        {
+          message: `[JSON Parse Failed] Failed to parse clipboard content for type: ${type}`,
+          clipboardContent: clipboardContent, // 파싱 실패 시 원본 내용을 에러 로그에 포함
+          promptContent: prompt,
+          error: error.stack,
+        },
+        error.stack,
+      );
+      throw new Error(`JSON parsing failed for type ${type}. Check error logs for details.`);
+    }
   }
 
   private async saveDebugInfo(page: Page, stage: string): Promise<void> {

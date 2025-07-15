@@ -14,6 +14,10 @@ const configSchema = z.object({
       .string({ required_error: 'Database URL is required' })
       .min(1, { message: 'Database URL cannot be empty' }),
   }),
+  redis: z.object({
+    host: z.string(),
+    port: z.number(),
+  }),
   google: z.object({
     apiKey: z.string({ required_error: 'Google API key is required' }),
   }),
