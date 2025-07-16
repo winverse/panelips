@@ -31,33 +31,32 @@ export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): 
 **출력 형식:**
 \`\`\`json
 {
+  "version": "0.1",
   "videoInfo": {
     "videoId": ${videoId},
     "url": "${url}",
     "title": "${title}",
-    "description": "${description}",
     "analysisType": "comprehensive_summary"
   },
   "summary": [
     {
       "text": "발언 내용 - 해당 시점에서 언급된 구체적인 내용, 논점, 근거, 예시 등을 상세히 기록. 단순 요약이 아닌 실제 발언의 맥락과 뉘앙스를 최대한 보존하여 작성. 발언자의 의도와 감정, 강조점도 함께 포함",
-      "time": "00:00"
+      "time": "해당 발언이 시작되는 지점의 타임스탬프가 포함된 유튜브 URL (형식: {유튜브 링크}&t={초}s)",
     },
     {
       "text": "다음 발언 내용 - 이전 발언과의 연관성, 새로운 주제 전환, 구체적인 데이터나 사례 제시 등을 포함하여 상세히 기록. 질문이 있었다면 질문의 배경과 답변의 전체 맥락을 모두 포함",
-      "time": "02:30"
+      "time": "해당 발언이 시작되는 지점의 타임스탬프가 포함된 유튜브 URL (형식: {유튜브 링크}&t={초}s)",
     },
     {
       "text": "추가 발언 내용 - 패널 간의 상호작용, 의견 차이, 보완 설명, 반박 등이 있다면 그 전체 과정을 상세히 기록. 중요한 수치나 데이터는 정확히 포함",
-      "time": "05:15"
+      "time": "해당 발언이 시작되는 지점의 타임스탬프가 포함된 유튜브 URL (형식: {유튜브 링크}&t={초}s)",
     }
   ],
   "metadata": {
     "totalSegments": "요약된 발언 구간의 총 개수",
     "coverageNote": "영상 전체 내용의 포괄 정도에 대한 설명",
     "contextualDepth": "맥락과 전후 사정이 얼마나 상세히 포함되었는지에 대한 설명",
-  },
-  "response": "completed"
+  }
 }
 \`\`\`
 

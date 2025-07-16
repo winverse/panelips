@@ -37,7 +37,7 @@ export class YoutubeService implements YoutubeServiceInterface {
     const channelId = await this.getChannelId(url);
 
     // 1. 어제 날짜를 기준으로 시작과 끝 시간 계산
-    const yesterday = subDays(new Date(), 3);
+    const yesterday = subDays(new Date(), 2);
     const publishedAfter = startOfDay(yesterday).toISOString();
     const publishedBefore = endOfDay(yesterday).toISOString();
     const dateKey = format(yesterday, 'yyyy-MM-dd');

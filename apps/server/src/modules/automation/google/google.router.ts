@@ -18,7 +18,7 @@ export function createGoogleRouter(app: INestApplication) {
       )
       .mutation(async () => {
         try {
-          await googleService.googleLogin();
+          await googleService.performIntegratedLoginFlow();
           return { success: true };
         } catch (error) {
           const message = error instanceof Error ? error.message : 'An unknown error occurred';

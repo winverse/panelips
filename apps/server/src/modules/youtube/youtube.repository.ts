@@ -105,8 +105,6 @@ export class YoutubeRepository {
 
   public async isScriptAnalysisComplete(url: string) {
     const result = await this.findVideoScriptByUrl(url);
-
-    console.log('script result', url, result);
     return !!result;
   }
 
@@ -128,7 +126,6 @@ export class YoutubeRepository {
 
   public async isJsonAnalysisComplete(url: string) {
     const result = await this.findVideoJsonByUrl(url);
-    console.log('json result', url, result);
     return !!result;
   }
 }

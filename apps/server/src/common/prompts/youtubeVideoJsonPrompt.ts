@@ -41,6 +41,7 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 **1. 정상 출력 형식 (isRelatedAsset: true)**
 \`\`\`json
 {
+    "version": "0.1",
     "isRelatedAsset": true,
     "videoInfo": {
         "videoId": "${videoId}",
@@ -81,8 +82,7 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
                 }
             ]
         }
-    ],
-    "response": "completed"
+    ]
 }
 \`\`\`
 
