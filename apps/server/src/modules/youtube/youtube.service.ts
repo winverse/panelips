@@ -37,7 +37,7 @@ export class YoutubeService implements YoutubeServiceInterface {
     const channelId = await this.getChannelId(url);
 
     // 1. 어제 날짜를 기준으로 시작과 끝 시간 계산
-    const yesterday = subDays(new Date(), 2);
+    const yesterday = subDays(new Date(), 3);
     const publishedAfter = startOfDay(yesterday).toISOString();
     const publishedBefore = endOfDay(yesterday).toISOString();
     const dateKey = format(yesterday, 'yyyy-MM-dd');
@@ -48,7 +48,7 @@ export class YoutubeService implements YoutubeServiceInterface {
     const cachedVideos = await this.cacheManager.get<YoutubeVideo[]>(cacheKey);
     if (cachedVideos) {
       this.logger.log(`[Cache Hit] Found videos for channel ${channelId} on ${dateKey} in cache.`);
-      return cachedVideos;
+      return await this.setHandleAnalysisCompleted(cachedVideos);
     }
 
     this.logger.log(
@@ -127,17 +127,9 @@ export class YoutubeService implements YoutubeServiceInterface {
         );
 
       this.logger.log(`Found ${videoInfo.length} new videos (5min-2h) from URL: ${url}`);
+      await this.cacheManager.set(cacheKey, videoInfo);
 
-      const promises = videoInfo.map(async (video) => ({
-        ...video,
-        isJsonAnalysisComplete: await this.isJsonAnalysisComplete(video.url),
-        isScriptAnalysisComplete: await this.isScriptAnalysisComplete(video.url),
-      }));
-
-      const result = await Promise.all(promises);
-      await this.cacheManager.set(cacheKey, result);
-
-      return result;
+      return await this.setHandleAnalysisCompleted(videoInfo);
     } catch (error: any) {
       this.logger.error(`새 유튜브 동영상 가져오는 중 오류 발생: ${error.message}`, error.stack);
 
@@ -152,6 +144,15 @@ export class YoutubeService implements YoutubeServiceInterface {
       }
       throw new Error(`새 동영상 가져오기 실패: ${error.message}`);
     }
+  }
+
+  private async setHandleAnalysisCompleted(videos: YoutubeVideo[]) {
+    const promises = videos.map(async (video) => ({
+      ...video,
+      isJsonAnalysisComplete: await this.isJsonAnalysisComplete(video.url),
+      isScriptAnalysisComplete: await this.isScriptAnalysisComplete(video.url),
+    }));
+    return await Promise.all(promises);
   }
 
   private async getChannelId(url: string): Promise<string> {
