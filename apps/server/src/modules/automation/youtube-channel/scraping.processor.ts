@@ -3,6 +3,7 @@ import { YoutubeChannelService } from '@modules/automation/youtube-channel/youtu
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { sleep } from 'bun';
 
 @Processor('scraping-queue')
 export class ScrapingProcessor extends WorkerHost {
@@ -15,6 +16,7 @@ export class ScrapingProcessor extends WorkerHost {
   async process(job: Job<YoutubeChannelScrapArgs>): Promise<any> {
     this.logger.log(`Processing job #${job.id} of type ${job.name} with data: ${job.data.url}`);
     try {
+      await sleep(3000);
       const result = await this.youtubeChannelService.youtubeChannelScrap(job.data);
       this.logger.log(`Completed job #${job.id}`);
       return result;

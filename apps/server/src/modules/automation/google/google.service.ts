@@ -68,7 +68,6 @@ export class GoogleService {
           log.info('Step 2: Checking Perplexity login status...');
           await page.goto('https://www.perplexity.ai/');
           await this.handlePerplexityLoginCheck(page);
-
         } catch (error) {
           await this.saveDebugInfo(page, error as Error);
           throw error;
@@ -165,7 +164,7 @@ export class GoogleService {
       this.logger.log(`🔍 Login status: ${isLoggedIn ? 'Logged in' : 'Not logged in'}`);
 
       return isLoggedIn;
-    } catch (error) {
+    } catch (_error) {
       this.logger.log('Could not verify login status. Assuming not logged in.');
       return false;
     }
