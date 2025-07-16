@@ -37,13 +37,13 @@ export class YoutubeService implements YoutubeServiceInterface {
     const channelId = await this.getChannelId(url);
 
     // 1. 어제 날짜를 기준으로 시작과 끝 시간 계산
-    const yesterday = subDays(new Date(), 1);
+    const yesterday = subDays(new Date(), 2);
     const publishedAfter = startOfDay(yesterday).toISOString();
     const publishedBefore = endOfDay(yesterday).toISOString();
     const dateKey = format(yesterday, 'yyyy-MM-dd');
 
     // 2. 날짜와 채널 ID를 포함한 새로운 캐시 키 생성
-    const cacheKey = `youtube-videos:${dateKey}:${channelId}`;
+    const cacheKey = `youtube-videos:${channelId}:${dateKey}`;
 
     const cachedVideos = await this.cacheManager.get<YoutubeVideo[]>(cacheKey);
     if (cachedVideos) {
@@ -66,13 +66,12 @@ export class YoutubeService implements YoutubeServiceInterface {
         publishedBefore,
         type: ['video'],
         order: 'date',
-        maxResults: 50, // 하루에 50개 이상은 거의 없으므로 충분
+        maxResults: 50,
       });
 
       const searchItems = searchResponse.data.items;
       if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
         this.logger.log(`No new videos found for channel ${channelId} on ${dateKey}.`);
-        // 비어있는 결과도 캐싱하여 불필요한 반복 API 호출 방지
         await this.cacheManager.set(cacheKey, []);
         return [];
       }
@@ -133,7 +132,6 @@ export class YoutubeService implements YoutubeServiceInterface {
       }));
 
       const result = await Promise.all(promises);
-      // 4. 최종 결과를 새로운 캐시 키로 저장
       await this.cacheManager.set(cacheKey, result);
 
       return result;

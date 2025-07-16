@@ -1,14 +1,12 @@
-import { extractYouTubeVideoId } from '@src/common/utils/index.js';
-
 interface YoutubeVideoScriptInput {
   url: string;
   description: string;
   title: string;
+  videoId: string;
 }
 
 export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): string {
-  const { url, description, title } = input;
-  const videoId = extractYouTubeVideoId(url);
+  const { url, description, title, videoId } = input;
 
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 유튜브 영상 요약 AI입니다. 당신의 임무는 제공된 유튜브 영상에서 **광범위하고 포괄적인 내용**을 시간순으로 정리하여, 영상의 전체적인 흐름과 맥락을 파악할 수 있는 상세한 요약 데이터를 생성하는 것입니다.
@@ -34,7 +32,7 @@ export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): 
 \`\`\`json
 {
   "videoInfo": {
-    "videoId": ${videoId} // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)" 맞지 않으면 수정 바람,
+    "videoId": ${videoId},
     "url": "${url}",
     "title": "${title}",
     "description": "${description}",
@@ -58,8 +56,8 @@ export function createYoutubeVideoScriptPrompt(input: YoutubeVideoScriptInput): 
     "totalSegments": "요약된 발언 구간의 총 개수",
     "coverageNote": "영상 전체 내용의 포괄 정도에 대한 설명",
     "contextualDepth": "맥락과 전후 사정이 얼마나 상세히 포함되었는지에 대한 설명",
-    "response": "completed"
-  }
+  },
+  "response": "completed"
 }
 \`\`\`
 

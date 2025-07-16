@@ -23,7 +23,7 @@ export class YoutubeChannelService {
   private readonly logger = new Logger(YoutubeChannelService.name);
 
   // --- 💡 타임아웃 설정 변수 ---
-  private readonly TIMEOUT_MINUTES = 3; // 3분으로 설정
+  private readonly TIMEOUT_MINUTES = 3; // 5분으로 설정
   private readonly TIMEOUT_SECONDS = this.TIMEOUT_MINUTES * ONE_MINUTE_AS_S;
   private readonly TIMEOUT_MILLIS = this.TIMEOUT_SECONDS * ONE_SECOND_AS_MS;
   // --------------------------
@@ -71,13 +71,12 @@ export class YoutubeChannelService {
     channelId,
   }: YoutubeChannelScrapArgs) {
     const videoId = extractYouTubeVideoId(url);
-
     if (!videoId) {
       throw new Error('Invalid YouTube video URL');
     }
 
-    const jsonPrompt = createYoutubeJsonPrompt({ title, description, url, channelId });
-    const scriptPrompt = createYoutubeVideoScriptPrompt({ title, description, url });
+    const jsonPrompt = createYoutubeJsonPrompt({ title, description, url, channelId, videoId });
+    const scriptPrompt = createYoutubeVideoScriptPrompt({ title, description, url, videoId });
 
     this.logger.log('🚀 Starting scraping process with persistent user profile...');
     this.logger.log(`👤 Using user data directory: ${this.USER_DATA_DIR}`);
@@ -108,13 +107,16 @@ export class YoutubeChannelService {
       });
     }
 
-    const requestQueue = await RequestQueue.open(`youtube-prompts-${Date.now()}`);
+    const queueName = `youtube-prompts-${videoId}`;
+    const oldQueue = await RequestQueue.open(queueName);
+    await oldQueue.drop();
+    const requestQueue = await RequestQueue.open(queueName);
 
     if (!isJsonAnalysisComplete) {
       await requestQueue.addRequest({
         url: this.GEMINI_URL,
         uniqueKey: `json-${url}`,
-        userData: { prompt: jsonPrompt, type: 'json' },
+        userData: { prompt: jsonPrompt, type: 'json', videoUrl: url },
       });
     }
 
@@ -122,7 +124,7 @@ export class YoutubeChannelService {
       await requestQueue.addRequest({
         url: this.GEMINI_URL,
         uniqueKey: `script-${url}`,
-        userData: { prompt: scriptPrompt, type: 'script' },
+        userData: { prompt: scriptPrompt, type: 'script', videoUrl: url },
       });
     }
 
@@ -131,6 +133,7 @@ export class YoutubeChannelService {
       maxRequestRetries: 1,
       useSessionPool: false,
       maxConcurrency: 1,
+      navigationTimeoutSecs: this.TIMEOUT_SECONDS,
       requestHandlerTimeoutSecs: this.TIMEOUT_SECONDS,
       browserPoolOptions: {
         useFingerprints: true,
@@ -143,23 +146,19 @@ export class YoutubeChannelService {
         },
       },
       launchContext: {
-        useChrome: true,
         userDataDir: this.USER_DATA_DIR,
+        useChrome: true,
         launchOptions: {
-          channel: 'chrome',
+          // channel: 'chrome',
           headless: false,
           args: [
-            '--no-sandbox', // 샌드박스 비활성화
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // /dev/shm 파티션 사용 비활성화
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', // 싱글 프로세스 모드 (메모리 사용량 감소에 도움될 수 있음)
-            '--disable-gpu', // GPU 하드웨어 가속 비활성화
             '--proxy-server=direct://',
             '--proxy-bypass-list=*',
             '--disable-blink-features=AutomationControlled',
+            '--disable-web-security', // 추가 권장
+            '--disable-features=VizDisplayCompositor', // 추가 권장
+            '--no-first-run',
+            '--no-default-browser-check',
           ],
         },
       },
@@ -174,16 +173,14 @@ export class YoutubeChannelService {
       ],
 
       requestHandler: async ({ page, request, log }) => {
-        const { type, prompt } = request.userData;
+        const { type, videoUrl } = request.userData;
         const { url } = request;
         log.info(`[Processing started] ${url} - Type: ${type}`);
 
         try {
           const result = await this.handleGeminiScrape(page, url, request.userData);
-
           const video = await this.youtubeRepository.findVideoByVideoId(videoId);
           if (!video) {
-            // 이 경우는 거의 발생하지 않아야 하지만, 방어적으로 로깅합니다.
             throw new Error(
               `Database Error: Video with videoId ${videoId} not found after scraping.`,
             );
@@ -198,21 +195,19 @@ export class YoutubeChannelService {
           this.logger.error(
             {
               message: `[Scraping Failed] An error occurred during request handling for ${url} (Type: ${type})`,
-              videoUrl: url,
+              videoUrl,
               promptType: type,
-              promptContent: prompt,
               error: error.stack,
             },
             error.stack,
           );
           await this.saveDebugInfo(page, `request-handler-failed-${type}`);
-          // 에러를 다시 던져서 crawler의 failedRequestHandler가 동작하도록 합니다.
           throw error;
         }
       },
-      failedRequestHandler: async ({ page, request, error }) => {
-        const { type } = request.userData;
-        this.logger.error(`Request ${request.url} (type: ${type}) failed:`, error);
+      failedRequestHandler: async ({ page, request }, error) => {
+        const { type, videoUrl } = request.userData;
+        this.logger.error(`Request ${videoUrl} (type: ${type}) failed:`, error);
         await this.saveDebugInfo(page, 'failed-request');
       },
     });
@@ -261,7 +256,7 @@ export class YoutubeChannelService {
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(3000);
 
-      await this.startNewChat(page, type);
+      // await this.startNewChat(page, type);
       return await this.inputPromptToGemini(page, prompt, type);
     } catch (error) {
       this.logger.error(`❌ [${type}] Error during Gemini scraping:`, error);
@@ -282,7 +277,7 @@ export class YoutubeChannelService {
       await this.fillPrompt(page, prompt, type);
       await this.submitPrompt(page, type);
       await this.waitForResponse(page, type);
-      return await this.getGeminiResponse(page, type, prompt);
+      return await this.getGeminiResponse(page, type);
     } catch (error) {
       this.logger.error(`❌ [${type}] Error in inputPromptToGemini:`, error);
       throw error;
@@ -298,69 +293,70 @@ export class YoutubeChannelService {
   }
 
   private async submitPrompt(page: Page, type: string) {
-    await page.waitForTimeout(1000);
-    await page.keyboard.press('Enter');
-    this.logger.log(`✅ [${type}] 프롬프트가 제출되었습니다.`);
+    this.logger.log(`🖱️ [${type}] Clicking the 'Send' button to submit the prompt...`);
+    const SUBMIT_BUTTON_SELECTOR = 'button[data-test-id="send-button"]';
+
+    try {
+      await page.waitForSelector(SUBMIT_BUTTON_SELECTOR, { state: 'visible', timeout: 5000 });
+      await page.click(SUBMIT_BUTTON_SELECTOR);
+
+      this.logger.log(`✅ [${type}] 프롬프트가 성공적으로 제출되었습니다.`);
+    } catch (error) {
+      this.logger.error(`[${type}] Send button could not be found or clicked.`, error);
+      await this.saveDebugInfo(page, `submit-failed-${type}`);
+      throw new Error(`[${type}] Failed to submit the prompt by clicking the button.`);
+    }
   }
 
   private async waitForResponse(page: Page, type: string) {
     this.logger.log(`⏳ [${type}] Gemini의 응답을 기다리는 중입니다...`);
-    this.logger.log(
-      `🔍 [${type}] Lottie 애니메이션이 'completed' 상태가 될 때까지 기다리는 중입니다...`,
-    );
-    await page.waitForSelector(this.LOTTIE_ANIMATION_SELECTOR, {
-      state: 'attached',
-      timeout: this.TIMEOUT_MILLIS,
-    });
-    this.logger.log(`✅ [${type}] Lottie 애니메이션 상태가 "completed"로 변경되었습니다.`);
+    try {
+      this.logger.log(` [${type}] 1단계: '코드 복사' 버튼이 나타날 때까지 기다립니다...`);
+      await page.waitForSelector(this.COPY_BUTTON_SELECTOR, {
+        state: 'visible',
+        timeout: this.TIMEOUT_MILLIS,
+      });
+      this.logger.log(`✅ [${type}] '코드 복사' 버튼을 찾았습니다.`);
+      await page.waitForTimeout(30000); // 30초 대기
+      this.logger.log(` [${type}] 2단계: 응답이 완료될 때까지 스크롤하며 대기합니다...`);
 
-    this.logger.log(
-      `🔍 '${this.COMPLETION_KEYWORD}' 문자열이 최신 응답에 나타날 때까지 최종 확인 중입니다...`,
-    );
+      await page.waitForFunction(
+        ({ conversationSelector, modelResponseSelector, keyword }) => {
+          const conversation = document.querySelector(conversationSelector);
+          if (!conversation) return false;
+          conversation.scrollIntoView({ block: 'end' });
 
-    let isCompletedWithKeyword = false;
-    const startTimeKeywordCheck = Date.now();
-    const timeoutKeywordCheck = this.TIMEOUT_MILLIS;
+          const modelResponse = document.querySelector(modelResponseSelector);
+          return modelResponse?.textContent?.includes(keyword) ?? false;
+        },
+        {
+          conversationSelector: this.LAST_CONVERSATION_SELECTOR,
+          modelResponseSelector: this.LAST_MODEL_RESPONSE_SELECTOR, // <-- 이 셀렉터를 사용
+          keyword: this.COMPLETION_KEYWORD,
+        },
+        { timeout: this.TIMEOUT_MILLIS, polling: 2000 },
+      );
 
-    while (!isCompletedWithKeyword && Date.now() - startTimeKeywordCheck < timeoutKeywordCheck) {
-      const lastModelResponseElement = await page.$(this.LAST_MODEL_RESPONSE_SELECTOR);
-      if (lastModelResponseElement) {
-        const pageContent = await lastModelResponseElement.textContent();
-        if (pageContent?.includes(this.COMPLETION_KEYWORD)) {
-          isCompletedWithKeyword = true;
-          this.logger.log(
-            `🎉 '${this.COMPLETION_KEYWORD}' 문자열을 최신 응답에서 최종 확인했습니다!`,
-          );
-        } else {
-          this.logger.log(
-            '🤔 최신 응답에 최종 키워드가 아직 나타나지 않았습니다. 잠시 후 다시 확인합니다...',
-          );
-          await page.waitForTimeout(3000); // 3초마다 확인
-        }
-      } else {
-        this.logger.log(
-          '🤔 최신 모델 응답 텍스트 컨테이너를 찾을 수 없습니다. 잠시 후 다시 확인합니다...',
-        );
-        await page.waitForTimeout(3000); // 3초마다 확인
-      }
-    }
+      this.logger.log(`✅ [${type}] 응답 완료 키워드를 확인했습니다.`);
+      this.logger.log(` [${type}] 3단계: 안정성을 위해 추가로 1초 대기합니다...`);
+      await page.waitForTimeout(1000);
 
-    if (!isCompletedWithKeyword) {
-      throw new Error(`[${type}] Gemini 응답 완료 키워드 최종 확인 시간 초과`);
+      this.logger.log(`✅ [${type}] Gemini 응답이 완전히 완료되었습니다.`);
+    } catch (error) {
+      this.logger.error(`[${type}] Gemini 응답 대기 중 시간 초과 또는 오류 발생`, error);
+      await this.saveDebugInfo(page, `wait-for-response-failed-${type}`);
+      throw new Error(`[${type}] Gemini 응답 대기 중 실패했습니다.`);
     }
   }
 
-  private async getGeminiResponse(page: Page, type: string, prompt: string) {
+  private async getGeminiResponse(page: Page, type: string) {
     this.logger.log(`🖱️ [${type}] 응답에서 '코드 복사' 버튼을 찾고 클릭합니다...`);
 
     try {
-      // 1. '코드 복사' 버튼을 찾아서 클릭하는 로직 추가
       await page.waitForSelector(this.COPY_BUTTON_SELECTOR, { state: 'visible', timeout: 10000 });
       await page.click(this.COPY_BUTTON_SELECTOR);
       this.logger.log(`✅ [${type}] '코드 복사' 버튼을 성공적으로 클릭했습니다.`);
-
-      // 2. 클립보드에 복사될 시간을 잠시 대기
-      await page.waitForTimeout(500); // 0.5초 대기
+      await page.waitForTimeout(1000); // 1초 대기
     } catch (error) {
       this.logger.error(
         `[Copy Button Error] '코드 복사' 버튼을 찾거나 클릭하는 데 실패했습니다. (type: ${type})`,
@@ -379,7 +375,6 @@ export class YoutubeChannelService {
       this.logger.error(
         {
           message: `[Clipboard Empty] Clipboard is empty for type: ${type}`,
-          promptContent: prompt,
         },
         'Clipboard Empty',
       );
@@ -405,7 +400,6 @@ export class YoutubeChannelService {
         {
           message: `[JSON Parse Failed] Failed to parse clipboard content for type: ${type}`,
           clipboardContent: clipboardContent, // 파싱 실패 시 원본 내용을 에러 로그에 포함
-          promptContent: prompt,
           error: error.stack,
         },
         error.stack,
@@ -419,7 +413,6 @@ export class YoutubeChannelService {
     await fs.mkdir(this.DEBUG_PATH, { recursive: true });
 
     const screenshotPath = path.join(this.DEBUG_PATH, `screenshot-${stage}-${timestamp}.png`);
-
     try {
       await page.screenshot({ path: screenshotPath, fullPage: true });
       this.logger.log(`📸 Screenshot saved to ${screenshotPath}`);
