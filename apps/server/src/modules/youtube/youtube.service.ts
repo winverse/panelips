@@ -96,12 +96,15 @@ export class YoutubeService implements YoutubeServiceInterface {
         return [];
       }
 
+      const minDurationInSeconds = 5 * 60; // 5분 (300초)
       const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
       const filteredVideos = videosWithDetails.filter((video) => {
         const duration = video.contentDetails?.duration;
         if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
         const durationInSeconds = parseISO8601Duration(duration);
-        return durationInSeconds <= maxDurationInSeconds;
+        return (
+          durationInSeconds >= minDurationInSeconds && durationInSeconds <= maxDurationInSeconds
+        );
       });
 
       const videoInfo = filteredVideos
@@ -123,7 +126,7 @@ export class YoutubeService implements YoutubeServiceInterface {
           (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
         );
 
-      this.logger.log(`Found ${videoInfo.length} new videos (under 2h) from URL: ${url}`);
+      this.logger.log(`Found ${videoInfo.length} new videos (5min-2h) from URL: ${url}`);
 
       const promises = videoInfo.map(async (video) => ({
         ...video,

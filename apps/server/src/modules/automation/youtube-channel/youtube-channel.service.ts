@@ -15,6 +15,7 @@ import {
 } from '@src/common/prompts/index.js';
 import { extractYouTubeVideoId } from '@src/common/utils/index.js';
 import { Queue } from 'bullmq';
+import { sleep } from 'bun';
 import { Dictionary, PlaywrightCrawler, RequestQueue } from 'crawlee';
 import { Page } from 'playwright';
 
@@ -75,6 +76,7 @@ export class YoutubeChannelService {
       throw new Error('Invalid YouTube video URL');
     }
 
+    await sleep(1000);
     const jsonPrompt = createYoutubeJsonPrompt({ title, description, url, channelId, videoId });
     const scriptPrompt = createYoutubeVideoScriptPrompt({ title, description, url, videoId });
 
@@ -130,7 +132,7 @@ export class YoutubeChannelService {
 
     const crawler = new PlaywrightCrawler({
       requestQueue,
-      maxRequestRetries: 1,
+      maxRequestRetries: 2,
       useSessionPool: false,
       maxConcurrency: 1,
       navigationTimeoutSecs: this.TIMEOUT_SECONDS,
@@ -140,16 +142,14 @@ export class YoutubeChannelService {
         fingerprintOptions: {
           fingerprintGeneratorOptions: {
             locales: ['ko-KR', 'ko'],
-            browsers: ['chrome'],
             devices: ['desktop'],
           },
         },
       },
       launchContext: {
         userDataDir: this.USER_DATA_DIR,
-        useChrome: true,
+        // useChrome: true,
         launchOptions: {
-          // channel: 'chrome',
           headless: false,
           args: [
             '--proxy-server=direct://',
@@ -256,7 +256,10 @@ export class YoutubeChannelService {
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(3000);
 
-      // await this.startNewChat(page, type);
+      const fined = await this.startNewChat(page, type);
+      if (!fined) {
+        throw new Error(`[${type}] Failed to start a new chat session.`);
+      }
       return await this.inputPromptToGemini(page, prompt, type);
     } catch (error) {
       this.logger.error(`❌ [${type}] Error during Gemini scraping:`, error);
@@ -266,10 +269,19 @@ export class YoutubeChannelService {
   }
 
   private async startNewChat(page: Page, type: string) {
-    await page.waitForSelector(this.NEW_CHAT_BUTTON_SELECTOR, { state: 'visible', timeout: 10000 });
-    await page.click(this.NEW_CHAT_BUTTON_SELECTOR);
-    this.logger.log(`✅ [${type}] 새 채팅이 성공적으로 시작되었습니다.`);
-    await page.waitForTimeout(2000); // 새 채팅 UI 로딩 대기
+    this.logger.log(`[${type}] Looking for 'New Chat' button to start a session...`);
+    try {
+      await page.waitForTimeout(10000);
+      await page.click(this.NEW_CHAT_BUTTON_SELECTOR, { timeout: 5000 });
+      this.logger.log(`✅ [${type}] 'New Chat' button clicked successfully.`);
+    } catch (_error) {
+      this.logger.warn(
+        `[${type}] 'New Chat' button not found. Assuming already in a chat session.`,
+      );
+      return false;
+    }
+    await page.waitForTimeout(2000);
+    return true;
   }
 
   private async inputPromptToGemini(page: Page, prompt: string, type: string) {
@@ -294,15 +306,22 @@ export class YoutubeChannelService {
 
   private async submitPrompt(page: Page, type: string) {
     this.logger.log(`🖱️ [${type}] Clicking the 'Send' button to submit the prompt...`);
-    const SUBMIT_BUTTON_SELECTOR = 'button[data-test-id="send-button"]';
+    const SUBMIT_BUTTON_SELECTOR = 'button[aria-label="메시지 보내기"]';
 
     try {
-      await page.waitForSelector(SUBMIT_BUTTON_SELECTOR, { state: 'visible', timeout: 5000 });
+      await page.waitForSelector(SUBMIT_BUTTON_SELECTOR, {
+        state: 'visible',
+        timeout: 5000,
+      });
+
       await page.click(SUBMIT_BUTTON_SELECTOR);
 
       this.logger.log(`✅ [${type}] 프롬프트가 성공적으로 제출되었습니다.`);
     } catch (error) {
-      this.logger.error(`[${type}] Send button could not be found or clicked.`, error);
+      this.logger.error(
+        `[${type}] Send button could not be found or clicked with selector: ${SUBMIT_BUTTON_SELECTOR}`,
+        error,
+      );
       await this.saveDebugInfo(page, `submit-failed-${type}`);
       throw new Error(`[${type}] Failed to submit the prompt by clicking the button.`);
     }

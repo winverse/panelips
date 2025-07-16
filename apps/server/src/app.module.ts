@@ -21,6 +21,20 @@ import { TrpcModule } from './trpc/trpc.module.js';
         connection: {
           host: configService.get('redis.host'),
           port: configService.get('redis.port'),
+          // Redis 연결 안정성 개선
+          retryDelayOnFailover: 100,
+          enableReadyCheck: false,
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+        },
+        defaultJobOptions: {
+          removeOnComplete: 10,
+          removeOnFail: 50,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
       }),
       inject: [ConfigService],

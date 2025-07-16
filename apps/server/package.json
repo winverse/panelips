@@ -28,7 +28,6 @@
     "ssm": "bun ./scripts/ssm.ts"
   },
   "dependencies": {
-    "@crawlee/playwright": "^3.13.10",
     "@googleapis/youtube": "^26.0.1",
     "@keyv/redis": "^4.6.0",
     "@nestjs/bullmq": "^11.0.2",

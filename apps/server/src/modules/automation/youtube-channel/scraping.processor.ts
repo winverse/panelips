@@ -12,7 +12,7 @@ export class ScrapingProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<YoutubeChannelScrapArgs, any, string>): Promise<any> {
+  async process(job: Job<YoutubeChannelScrapArgs>): Promise<any> {
     this.logger.log(`Processing job #${job.id} of type ${job.name} with data: ${job.data.url}`);
     try {
       const result = await this.youtubeChannelService.youtubeChannelScrap(job.data);
