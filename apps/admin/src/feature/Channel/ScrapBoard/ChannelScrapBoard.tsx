@@ -172,7 +172,7 @@ export function ChannelScrapBoard() {
               },
             })}
           >
-            {isProcessing ? 'Gemini 분석 중...' : 'GEMINI 요약하기'}
+            {isProcessing ? 'AI 분석 중...' : 'AI 요약하기'}
           </Button>
         </div>
       </div>

@@ -62,7 +62,8 @@
       "!**/*.d.ts",
       "!**/styled-system/**",
       "!**/panda.config.ts",
-      "!**/generated/**"
+      "!**/generated/**",
+      "!**/server/playwright/**"
     ]
   }
 }

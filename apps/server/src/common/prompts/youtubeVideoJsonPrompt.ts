@@ -6,9 +6,7 @@ interface CreateYoutubeJsonPromptInput {
   videoId: string;
 }
 
-export function createYoutubeJsonPrompt(
-  input: CreateYoutubeJsonPromptInput
-): string {
+export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): string {
   const { url, description, title, channelId, videoId } = input;
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 데이터 분석 AI입니다. 당신의 임무는 제공된 유튜브 영상 정보에서 **가장 가치 있는 핵심 인사이트만을 선별(Curation)**하여, 비평 및 연구 목적으로 사용될 데이터를 생성하는 것입니다. 모든 결과물은 저작권의 '공정 이용' 원칙을 철저히 준수해야 합니다.

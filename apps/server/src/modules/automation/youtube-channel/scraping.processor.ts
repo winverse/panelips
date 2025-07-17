@@ -5,7 +5,10 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { sleep } from 'bun';
 
-@Processor('scraping-queue')
+@Processor('scraping-queue', {
+  concurrency: 1,
+  lockDuration: 10 * 60 * 1000, // 10 minutes
+})
 export class ScrapingProcessor extends WorkerHost {
   private readonly logger = new Logger(ScrapingProcessor.name);
 
