@@ -24,7 +24,6 @@ import { TrpcModule } from './trpc/trpc.module.js';
           // Redis 연결 안정성 개선
           retryDelayOnFailover: 100,
           enableReadyCheck: false,
-          maxRetriesPerRequest: 3,
           lazyConnect: true,
         },
         defaultJobOptions: {
