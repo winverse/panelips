@@ -11,9 +11,10 @@ import { ChannelItem } from './ChannelItem';
 
 type ChannelListProps = {
   channels: string[];
+  channelTitleMap: Record<string, string>;
 };
 
-export function ChannelList({ channels }: ChannelListProps) {
+export function ChannelList({ channels, channelTitleMap }: ChannelListProps) {
   const trpc = useTRPC();
   const [, addScrapChannel] = useAtom(addScrapChannelAtom);
 
@@ -115,7 +116,9 @@ export function ChannelList({ channels }: ChannelListProps) {
         {channels.length === 0 ? (
           <ChannelEmptyState />
         ) : (
-          channels.map((channel) => <ChannelItem key={channel} channel={channel} />)
+          channels.map((channel) => (
+            <ChannelItem key={channel} channel={channel} channelTitle={channelTitleMap[channel]} />
+          ))
         )}
       </ul>
     </div>

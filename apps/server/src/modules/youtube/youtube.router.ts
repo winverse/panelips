@@ -37,11 +37,11 @@ export function createYoutubeRouter(app: INestApplication) {
         }
       }),
 
-    getChannelsUrl: trpcService.procedure
-      .meta({ description: '채널 URL 불러오기' })
-      .output(z.array(z.string()))
+    getChannels: trpcService.procedure
+      .meta({ description: '채널 정보 불러오기' })
+      .output(z.array(z.object({ url: z.string(), title: z.string() })))
       .query(async () => {
-        return youtubeService.getChannelsUrl();
+        return youtubeService.getChannels();
       }),
 
     getVideoDataByDateRange: trpcService.procedure

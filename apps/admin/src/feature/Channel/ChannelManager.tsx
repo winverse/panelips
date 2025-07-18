@@ -21,12 +21,22 @@ export function ChannelManager() {
   const [isGoogleLoginLoading, setIsGoogleLoginLoading] = useState(false);
 
   const { mutateAsync: googleLogin } = useMutation(trpc.automation.google.login.mutationOptions());
-  const { data: channelUrls } = useQuery(trpc.youtube.getChannelsUrl.queryOptions());
+  const { data: channelData } = useQuery(trpc.youtube.getChannels.queryOptions());
+
+  // URL-title 매핑 생성
+  const channelTitleMap =
+    channelData?.reduce(
+      (acc, channel) => {
+        acc[channel.url] = channel.title;
+        return acc;
+      },
+      {} as Record<string, string>,
+    ) || {};
 
   useEffect(() => {
-    if (!channelUrls || !Array.isArray(channelUrls)) return;
-    const result = channelUrls.map((url) => {
-      const { success, message } = addChannel(url);
+    if (!channelData || !Array.isArray(channelData)) return;
+    const result = channelData.map((channel) => {
+      const { success, message } = addChannel(channel.url);
       if (!success) {
         console.error(message);
       }
@@ -38,7 +48,7 @@ export function ChannelManager() {
     } else {
       toast.error('채널 자동 추가 실패!');
     }
-  }, [channelUrls, addChannel]);
+  }, [channelData, addChannel]);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoginLoading(true);
@@ -155,7 +165,7 @@ export function ChannelManager() {
           gap: '1rem',
         })}
       >
-        <ChannelList channels={channels} />
+        <ChannelList channels={channels} channelTitleMap={channelTitleMap} />
         <ChannelScrapBoard />
       </div>
     </div>

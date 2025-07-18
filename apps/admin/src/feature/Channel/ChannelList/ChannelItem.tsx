@@ -12,9 +12,10 @@ import { toast } from 'react-toastify';
 
 type ChannelItemProps = {
   channel: string;
+  channelTitle?: string;
 };
 
-export function ChannelItem({ channel }: ChannelItemProps) {
+export function ChannelItem({ channel, channelTitle }: ChannelItemProps) {
   const trpc = useTRPC();
   const [_, addScrapChannel] = useAtom(addScrapChannelAtom);
 
@@ -46,7 +47,7 @@ export function ChannelItem({ channel }: ChannelItemProps) {
           onClick={() => removeChannel(channel)}
           {...tooltip.tooltipProps}
         >
-          {decodeURIComponent(channel)}
+          {channelTitle || decodeURIComponent(channel)}
         </Button>
         <tooltip.TooltipComponent />
         {isPending && (

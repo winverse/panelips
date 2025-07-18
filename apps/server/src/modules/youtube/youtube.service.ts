@@ -14,7 +14,7 @@ import { YoutubeRepository } from './youtube.repository.js';
 
 interface YoutubeServiceInterface {
   getNewVideos(url: string): Promise<YoutubeVideo[]>;
-  getChannelsUrl(): Promise<string[]>;
+  getChannels(): Promise<{ url: string; title: string }[]>;
 }
 
 @Injectable()
@@ -268,9 +268,12 @@ export class YoutubeService implements YoutubeServiceInterface {
     }
   }
 
-  public async getChannelsUrl(): Promise<string[]> {
+  public async getChannels(): Promise<{ url: string; title: string }[]> {
     const channels = await this.youtubeRepository.findChannels();
-    return channels.map((channel) => channel.url);
+    return channels.map((channel) => ({
+      url: channel.url,
+      title: channel.title,
+    }));
   }
 
   public async isJsonAnalysisComplete(url: string): Promise<boolean> {
