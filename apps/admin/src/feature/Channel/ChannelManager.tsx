@@ -44,10 +44,15 @@ export function ChannelManager() {
     setIsGoogleLoginLoading(true);
     try {
       const result = await googleLogin();
-      if (result.success) {
-        toast.success('✅ 구글 로그인 성공! 쿠키가 저장되었습니다.');
+      if (result && typeof result === 'object' && 'success' in result) {
+        if (result.success) {
+          toast.success('✅ 구글 로그인 성공! 쿠키가 저장되었습니다.');
+        } else {
+          const error = 'error' in result ? result.error : '알 수 없는 오류';
+          toast.error(`❌ 구글 로그인 실패: ${error || '알 수 없는 오류'}`);
+        }
       } else {
-        toast.error(`❌ 구글 로그인 실패: ${result.error || '알 수 없는 오류'}`);
+        toast.error('❌ 구글 로그인 실패: 알 수 없는 오류');
       }
     } catch (error: any) {
       toast.error(`❌ 로그인 중 오류 발생: ${error.message || '알 수 없는 오류'}`);

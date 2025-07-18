@@ -128,4 +128,42 @@ export class YoutubeRepository {
     const result = await this.findVideoJsonByUrl(url);
     return !!result;
   }
+
+  // 기간별 script/json 데이터 조회 (채널 필터링 포함)
+  public async findVideoDataByDateRange(startDate: Date, endDate: Date, channelFilter?: string) {
+    const whereCondition: Prisma.YoutubeVideoWhereInput = {
+      publishedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // 채널 필터가 있는 경우 채널 ID 또는 채널명으로 필터링
+    if (channelFilter) {
+      console.log('channelFilter', channelFilter);
+      whereCondition.channel = {
+        OR: [
+          { channelId: { contains: channelFilter, mode: 'insensitive' } },
+          { title: { contains: channelFilter, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    return this.mongo.youtubeVideo.findMany({
+      where: whereCondition,
+      include: {
+        script: true,
+        json: true,
+        channel: {
+          select: {
+            title: true,
+            channelId: true,
+          },
+        },
+      },
+      orderBy: {
+        publishedAt: 'desc',
+      },
+    });
+  }
 }

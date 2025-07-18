@@ -70,13 +70,17 @@ export function ChannelScrapBoard() {
             description: channel.description,
             url: channel.url,
             channelId: channel.channelId,
-          });
+          } as any);
 
-          if (result.success) {
+          if (result && typeof result === 'object' && 'success' in result && result.success) {
             successCount++;
           } else {
             failCount++;
-            console.error(`채널 ${channel.title} 스크랩 실패:`, result.message);
+            const message =
+              result && typeof result === 'object' && 'message' in result
+                ? result.message
+                : '알 수 없는 오류';
+            console.error(`채널 ${channel.title} 스크랩 실패:`, message);
           }
         } catch (error) {
           failCount++;

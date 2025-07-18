@@ -48,7 +48,7 @@ export function ChannelList({ channels }: ChannelListProps) {
         }
         break;
       }
-      if (query.data) {
+      if (query.data && Array.isArray(query.data)) {
         allChannelData.push(...query.data);
       }
     }

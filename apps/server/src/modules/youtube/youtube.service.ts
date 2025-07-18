@@ -282,4 +282,42 @@ export class YoutubeService implements YoutubeServiceInterface {
     const video = await this.youtubeRepository.findVideoByUrl(url, { script: true });
     return !!video?.script;
   }
+
+  public async getVideoDataByDateRange(
+    startDate: Date,
+    endDate: Date,
+    channelFilter?: string,
+  ): Promise<
+    {
+      id: string;
+      videoId: string;
+      title: string;
+      url: string;
+      publishedAt: Date;
+      channelTitle: string;
+      hasScript: boolean;
+      hasJson: boolean;
+      scriptData: any;
+      jsonData: any;
+    }[]
+  > {
+    const videos = await this.youtubeRepository.findVideoDataByDateRange(
+      startDate,
+      endDate,
+      channelFilter,
+    );
+
+    return videos.map((video) => ({
+      id: video.id,
+      videoId: video.videoId,
+      title: video.title,
+      url: video.url,
+      publishedAt: video.publishedAt,
+      channelTitle: video.channel.title,
+      hasScript: !!video.script,
+      hasJson: !!video.json,
+      scriptData: video.script?.rawData || null,
+      jsonData: video.json?.rawData || null,
+    }));
+  }
 }

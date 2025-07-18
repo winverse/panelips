@@ -43,6 +43,37 @@ export function createYoutubeRouter(app: INestApplication) {
       .query(async () => {
         return youtubeService.getChannelsUrl();
       }),
+
+    getVideoDataByDateRange: trpcService.procedure
+      .meta({ description: '기간별 유튜브 스크립트/JSON 데이터 조회 (채널 필터링 포함)' })
+      .input(
+        z.object({
+          startDate: z.string().datetime(),
+          endDate: z.string().datetime(),
+          channelFilter: z.string().optional(), // 채널 ID 또는 채널명
+        }),
+      )
+      .output(
+        z.array(
+          z.object({
+            id: z.string(),
+            videoId: z.string(),
+            title: z.string(),
+            url: z.string(),
+            publishedAt: z.date(),
+            channelTitle: z.string(),
+            hasScript: z.boolean(),
+            hasJson: z.boolean(),
+            scriptData: z.any().nullable(),
+            jsonData: z.any().nullable(),
+          }),
+        ),
+      )
+      .query(async ({ input }) => {
+        const startDate = new Date(input.startDate);
+        const endDate = new Date(input.endDate);
+        return youtubeService.getVideoDataByDateRange(startDate, endDate, input.channelFilter);
+      }),
   });
 }
 

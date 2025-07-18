@@ -72,7 +72,7 @@ export function ChannelItem({ channel }: ChannelItemProps) {
             <span>영상 정보 로딩중...</span>
           </div>
         )}
-        {data && (
+        {!!data && Array.isArray(data) && (
           <div
             className={css({ ml: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' })}
           >
