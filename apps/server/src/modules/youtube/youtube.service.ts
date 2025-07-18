@@ -43,7 +43,7 @@ export class YoutubeService implements YoutubeServiceInterface {
     const dateKey = format(yesterday, 'yyyy-MM-dd');
 
     // 2. 날짜와 채널 ID를 포함한 새로운 캐시 키 생성
-    const cacheKey = `youtube-videos:${channelId}:${dateKey}`;
+    const cacheKey = `youtube-videos:${dateKey}:${channelId}`;
 
     const cachedVideos = await this.cacheManager.get<YoutubeVideo[]>(cacheKey);
     if (cachedVideos) {

@@ -1,4 +1,4 @@
-interface CreateYoutubeJsonPromptInput {
+interface PromptInput {
   url: string;
   description: string;
   title: string;
@@ -6,7 +6,7 @@ interface CreateYoutubeJsonPromptInput {
   videoId: string;
 }
 
-export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): string {
+function getJsonPrompt(input: PromptInput): string {
   const { url, description, title, channelId, videoId } = input;
   return `# 역할 및 목표
 당신은 'Panelips' 서비스를 위한 데이터 분석 AI입니다. 당신의 임무는 제공된 유튜브 영상 정보에서 **가장 가치 있는 핵심 인사이트만을 선별(Curation)**하여, 비평 및 연구 목적으로 사용될 데이터를 생성하는 것입니다. 모든 결과물은 저작권의 '공정 이용' 원칙을 철저히 준수해야 합니다.
@@ -45,12 +45,12 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
     "isRelatedAsset": true,
     "videoInfo": {
         "videoId": "${videoId}",
-        "url": "분석 대상 영상 URL과 동일한 값",
-        "title": "유튜브 영상 제목",
+        "url": "${url}",
+        "title": "${title}",
         "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
-        "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터
-        "channelId": "${channelId}"
-        "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
+        "relatedStocks": ["화장품", "삼성"],
+        "channelId": "${channelId}",
+        "publishedAt": "YYYY-MM-DDTHH:MM:SSZ" // 촬영 일자가 따로 적혀 있으면 그걸 publishedAt으로 적어주고 형식은 항상 "YYYY-MM-DDTHH:MM:SSZ"으로 적어줘
     },
     "panels": [
         {
@@ -92,12 +92,12 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 {
 "isRelatedAsset": false,
 "videoInfo": {
-    "videoId": "${videoId}" // "유튜브 링크에서 'v=' 뒤의 고유 ID (예: YZyM_XivxPY)", 이 형식과 맞지 않으면 수정 바람,
-    "url": "분석 대상 영상 URL과 동일한 값",
-    "title": "유튜브 영상 제목",
-    "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
-    "relatedStocks": ["화장품", "삼성"], // 이 영상과 관련 있는 종목/섹터 없으면 null 처리, 띄어쓰기 없도록
-    "channelId": "${channelId}"
+    "videoId": "${videoId}",
+    "url": "${url}",
+    "title": "${title}",
+    "summary": "",
+    "relatedStocks": [],
+    "channelId": "${channelId}",
     "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
 },
 "panels": null,
@@ -112,10 +112,67 @@ export function createYoutubeJsonPrompt(input: CreateYoutubeJsonPromptInput): st
 - **4점:** 수치는 없지만 '적극 매수' 또는 '강세 전망'과 같이 매우 강한 어조의 의견.
 - **3점:** '매수', '상승' 등 명확한 방향성을 제시하는 의견.
 - **2점:** 방향성은 있으나 조건부이거나 표현이 모호한 경우.
-- **1점:** 단순 현상 분석 또는 가치 판단이 어려운 일반적인 언급.
+- **1점:** 단순 현상 분석 또는 가치 판단이 어려운 일반적인 언급.`;
+}
 
-**주의사항:**
-- 제공된 영상 정보(제목, 설명)만으로 분석이 어려운 경우, 영상 내용을 추론하지 말고 \`isRelatedAsset: false\`로 처리하세요.
-- 모든 출력은 반드시 유효한 JSON 형식이어야 합니다.
-- 타임스탬프 관련 필드는 실제 영상 스크립트가 없으므로 0으로 설정하거나 적절한 추정값을 사용하세요.`;
+function getScriptPrompt(input: PromptInput): string {
+  const { url, description, title, videoId } = input;
+  return `# 역할 및 목표
+당신은 'Panelips' 서비스를 위한 유튜브 영상 요약 AI입니다. 당신의 임무는 제공된 유튜브 영상에서 **광범위하고 포괄적인 내용**을 시간순으로 정리하여, 영상의 전체적인 흐름과 맥락을 파악할 수 있는 상세한 요약 데이터를 생성하는 것입니다.
+
+# 요약 원칙
+1. **포괄적 내용 수집:** 단순한 요약이 아닌, 영상에서 언급되는 모든 중요한 내용과 전후 맥락을 포함합니다.
+2. **시간순 정리:** 영상의 진행 순서에 따라 발언 내용을 정리하여 전체적인 흐름을 파악할 수 있도록 합니다.
+3. **맥락 보존:** 각 발언의 배경과 상황, 그리고 다른 발언들과의 연관성을 유지합니다.
+4. **상세한 기록:** 중요한 논점, 근거, 예시, 데이터 등을 빠뜨리지 않고 기록합니다.
+5. **전후 사정 포함:** 각 발언이 나온 배경과 맥락, 그리고 이후 전개되는 내용까지 포함하여 완전한 이해를 돕습니다.
+
+---
+**분석 대상 영상 정보:**
+- **URL:** ${url}
+- **제목:** ${title}
+- **설명:** ${description}
+---
+
+# 요약 데이터 생성 작업
+위 원칙에 따라, 아래 JSON 형식에 맞춰 영상의 포괄적인 요약 데이터를 생성해 주세요.
+
+**출력 형식:**
+\`\`\`json
+{
+  "version": "0.1",
+  "videoInfo": {
+    "videoId": "${videoId}",
+    "url": "${url}",
+    "title": "${title}",
+    "analysisType": "comprehensive_summary"
+  },
+  "summary": [
+    {
+      "text": "발언 내용 - 해당 시점에서 언급된 구체적인 내용, 논점, 근거, 예시 등을 상세히 기록. 단순 요약이 아닌 실제 발언의 맥락과 뉘앙스를 최대한 보존하여 작성. 발언자의 의도와 감정, 강조점도 함께 포함",
+      "time": "해당 발언이 시작되는 지점의 타임스탬프가 포함된 유튜브 URL (형식: {유튜브 링크}&t={초}s)"
+    },
+    {
+      "text": "발언 내용 - 해당 시점에서 언급된 구체적인 내용, 논점, 근거, 예시 등을 상세히 기록. 단순 요약이 아닌 실제 발언의 맥락과 뉘앙스를 최대한 보존하여 작성. 발언자의 의도와 감정, 강조점도 함께 포함",
+      "time": "해당 발언이 시작되는 지점의 타임스탬프가 포함된 유튜브 URL (형식: {유튜브 링크}&t={초}s)"
+    }
+  ],
+  "metadata": {
+    "totalSegments": 1,
+    "coverageNote": "영상 전체 내용의 포괄 정도에 대한 설명",
+    "contextualDepth": "맥락과 전후 사정이 얼마나 상세히 포함되었는지에 대한 설명"
+  }
+}
+\`\`\`
+
+**상세 지침:**
+- 각 text 항목은 최소 3-5문장 이상의 상세한 내용 포함
+- 읽는 사람이 영상을 보지 않고도 전체 내용과 흐름을 완전히 이해할 수 있는 수준으로 작성`;
+}
+
+export function createCombinedYoutubeAnalysisPrompt(input: PromptInput): string {
+  const jsonPrompt = getJsonPrompt(input);
+  const scriptPrompt = getScriptPrompt(input);
+
+  return `당신은 여러 작업을 순차적으로 처리하는 AI입니다. 아래 두 가지 요청을 각각 수행하고, 결과를 **반드시 하나의 JSON 객체** 안에 \`json\` 키와 \`script\` 키로 묶어서 반환해주세요.\n\n# 최종 출력 형식\n\`\`\`json\n{\n  "json": {\n    // 첫 번째 요청(JSON 분석)의 결과를 여기에 삽입하세요.\n  },\n  "script": {\n    // 두 번째 요청(스크립트 분석)의 결과를 여기에 삽입하세요.\n  }\n}\n\`\`\`\n\n--- \n\n# 요청 1: 유튜브 영상 정보 분석 (JSON)\n\n${jsonPrompt}\n\n--- \n\n# 요청 2: 유튜브 영상 스크립트 분석\n\n${scriptPrompt}`;
 }

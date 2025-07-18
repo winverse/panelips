@@ -37,7 +37,7 @@ class KeyvCacheAdapter implements CacheStore {
         const keyv = new Keyv({ store });
         return {
           store: new KeyvCacheAdapter(keyv),
-          ttl: 21600, // 6 hours
+          ttl: 21600 * 4, // 1 day
         };
       },
       inject: [ConfigService],

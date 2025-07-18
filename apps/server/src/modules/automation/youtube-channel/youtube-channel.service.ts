@@ -8,11 +8,9 @@ import {
 import { YoutubeRepository } from '@modules/youtube/index.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { YoutubeVideo } from '@packages/database/mongo';
 import { ONE_MINUTE_AS_S, ONE_SECOND_AS_MS } from '@src/common/constants/time.js';
-import {
-  createYoutubeJsonPrompt,
-  createYoutubeVideoScriptPrompt,
-} from '@src/common/prompts/index.js';
+import { createCombinedYoutubeAnalysisPrompt } from '@src/common/prompts/index.js';
 import { extractYouTubeVideoId } from '@src/common/utils/index.js';
 import { Queue } from 'bullmq';
 import { Dictionary } from 'crawlee';
@@ -127,9 +125,9 @@ export class YoutubeChannelService implements OnModuleDestroy {
       return;
     }
 
-    const video = await this.youtubeRepository.findVideoByUrl(url);
+    let video: YoutubeVideo | null = await this.youtubeRepository.findVideoByUrl(url);
     if (!video) {
-      await this.youtubeRepository.createVideo({
+      video = await this.youtubeRepository.createVideo({
         title,
         url,
         videoId,
@@ -146,56 +144,45 @@ export class YoutubeChannelService implements OnModuleDestroy {
       });
     }
 
-    const prompts: { prompt: string; type: string; videoUrl: string }[] = [];
-    if (!isJsonAnalysisComplete) {
-      prompts.push({
-        prompt: createYoutubeJsonPrompt({ title, description, url, channelId, videoId }),
-        type: 'json',
-        videoUrl: url,
-      });
-    }
-    if (!isScriptAnalysisComplete) {
-      prompts.push({
-        prompt: createYoutubeVideoScriptPrompt({ title, description, url, videoId }),
-        type: 'script',
-        videoUrl: url,
-      });
+    if (!video) {
+      throw new Error(`Failed to find or create video: ${url}`);
     }
 
-    for (const item of prompts) {
-      const page = await this.browser.newPage();
-      try {
-        await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-        const result = await this.handlePerplexityScrape(page, this.PERPLEXITY_URL, item);
-        const video = await this.youtubeRepository.findVideoByVideoId(videoId);
-        if (!video) {
-          throw new Error(
-            `Database Error: Video with videoId ${videoId} not found after scraping.`,
-          );
-        }
+    const page = await this.browser.newPage();
+    try {
+      const prompt = createCombinedYoutubeAnalysisPrompt({
+        title,
+        description,
+        url,
+        channelId,
+        videoId,
+      });
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-        if (item.type === 'json') {
-          await this.handleJsonPromptResult(result as JsonPromptResult, video.id);
-        } else if (item.type === 'script') {
-          await this.handleScriptPromptResult(result as ScriptPromptResult, video.id);
-        }
-      } catch (error) {
-        this.logger.error(
-          {
-            message: `[Scraping Failed] An error occurred during request handling for ${item.videoUrl} (Type: ${item.type})`,
-            videoUrl: item.videoUrl,
-            promptType: item.type,
-            error: error.stack,
-          },
-          error.stack,
-        );
-        await this.saveDebugInfo(page, `request-handler-failed-${item.type}`);
-        // 에러가 발생해도 다음 프롬프트는 시도하도록 루프를 계속 진행합니다.
-      } finally {
-        await page.close();
+      const result = await this.handlePerplexityScrape(page, this.PERPLEXITY_URL, { prompt });
+
+      if (!isJsonAnalysisComplete && result.json) {
+        await this.handleJsonPromptResult(result.json as JsonPromptResult, video.id);
       }
+
+      if (!isScriptAnalysisComplete && result.script) {
+        await this.handleScriptPromptResult(result.script as ScriptPromptResult, video.id);
+      }
+
+      this.logger.log('✅ Completed scraping prompt for this job.');
+    } catch (error) {
+      this.logger.error(
+        {
+          message: `[Scraping Failed] An error occurred during request handling for ${url}`,
+          videoUrl: url,
+          error: error.stack,
+        },
+        error.stack,
+      );
+      await this.saveDebugInfo(page, 'request-handler-failed');
+    } finally {
+      await page.close();
     }
-    this.logger.log('✅ Completed all scraping prompts for this job.');
   }
 
   private async handleJsonPromptResult(json: JsonPromptResult, videoId: string) {
@@ -232,131 +219,131 @@ export class YoutubeChannelService implements OnModuleDestroy {
   }
 
   private async handlePerplexityScrape(page: Page, url: string, userData: Dictionary) {
-    const { prompt, type } = userData;
-    this.logger.log(`🤖 [${type}] Starting Perplexity AI prompt processing...`);
+    const { prompt } = userData;
+    this.logger.log('🤖 Starting Perplexity AI prompt processing...');
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(3000);
 
-      return await this.inputPromptToPerplexity(page, prompt, type);
+      return await this.inputPromptToPerplexity(page, prompt);
     } catch (error) {
-      this.logger.error(`❌ [${type}] Error during Perplexity scraping:`, error);
-      await this.saveDebugInfo(page, `perplexity-scrape-failed-${type}`);
+      this.logger.error('❌ Error during Perplexity scraping:', error);
+      await this.saveDebugInfo(page, 'perplexity-scrape-failed');
       throw error;
     }
   }
 
-  private async inputPromptToPerplexity(page: Page, prompt: string, type: string) {
+  private async inputPromptToPerplexity(page: Page, prompt: string) {
     try {
-      await this.fillPrompt(page, prompt, type);
-      await this.submitPrompt(page, type);
-      await this.waitForResponse(page, type);
-      return await this.getPerplexityResponse(page, type);
+      await this.fillPrompt(page, prompt);
+      await this.submitPrompt(page);
+      await this.waitForResponse(page);
+      return await this.getPerplexityResponse(page);
     } catch (error) {
-      this.logger.error(`❌ [${type}] Error in inputPromptToPerplexity:`, error);
+      this.logger.error('❌ Error in inputPromptToPerplexity:', error);
       throw error;
     }
   }
 
-  private async fillPrompt(page: Page, prompt: string, type: string) {
-    this.logger.log(`📝 [${type}] Looking for Perplexity input area...`);
+  private async fillPrompt(page: Page, prompt: string) {
+    this.logger.log('📝 Looking for Perplexity input area...');
     await page.waitForSelector(this.INPUT_SELECTOR, { state: 'visible', timeout: 10000 });
-    this.logger.log(`✅ [${type}] Perplexity input area found.`);
+    this.logger.log('✅ Perplexity input area found.');
     await page.fill(this.INPUT_SELECTOR, prompt);
-    this.logger.log(`✍️ [${type}] Prompt successfully entered into Perplexity input area.`);
+    this.logger.log('✍️ Prompt successfully entered into Perplexity input area.');
   }
 
-  private async submitPrompt(page: Page, type: string) {
-    this.logger.log(`🖱️ [${type}] Clicking the 'Send' button to submit the prompt...`);
+  private async submitPrompt(page: Page) {
+    this.logger.log(`🖱️ Clicking the 'Send' button to submit the prompt...`);
     try {
       await page.waitForSelector(this.SUBMIT_BUTTON_SELECTOR, {
         state: 'visible',
         timeout: 5000,
       });
       await page.click(this.SUBMIT_BUTTON_SELECTOR);
-      this.logger.log(`✅ [${type}] Prompt submitted successfully.`);
+      this.logger.log('✅ Prompt submitted successfully.');
     } catch (error) {
       this.logger.error(
-        `[${type}] Send button could not be found or clicked with selector: ${this.SUBMIT_BUTTON_SELECTOR}`,
+        `Send button could not be found or clicked with selector: ${this.SUBMIT_BUTTON_SELECTOR}`,
         error,
       );
-      await this.saveDebugInfo(page, `submit-failed-${type}`);
-      throw new Error(`[${type}] Failed to submit the prompt by clicking the button.`);
+      await this.saveDebugInfo(page, 'submit-failed');
+      throw new Error('Failed to submit the prompt by clicking the button.');
     }
   }
 
-  private async waitForResponse(page: Page, type: string) {
-    this.logger.log(`⏳ [${type}] Waiting for Perplexity's response...`);
+  private async waitForResponse(page: Page) {
+    this.logger.log(`⏳ Waiting for Perplexity's response...`);
     try {
-      this.logger.log(`[${type}] Waiting for the response completion indicator...`);
+      this.logger.log('Waiting for the response completion indicator...');
       await page.waitForSelector(this.RESPONSE_COMPLETED_SELECTOR, {
         state: 'visible',
         timeout: this.TIMEOUT_MILLIS,
       });
-      this.logger.log(`✅ [${type}] Response completion indicator found.`);
+      this.logger.log('✅ Response completion indicator found.');
       await page.waitForTimeout(1000);
-      this.logger.log(`✅ [${type}] Perplexity response is fully rendered.`);
+      this.logger.log('✅ Perplexity response is fully rendered.');
     } catch (error) {
-      this.logger.error(`[${type}] Timeout or error while waiting for Perplexity response`, error);
-      await this.saveDebugInfo(page, `wait-for-response-failed-${type}`);
-      throw new Error(`[${type}] Failed while waiting for Perplexity response.`);
+      this.logger.error('Timeout or error while waiting for Perplexity response', error);
+      await this.saveDebugInfo(page, 'wait-for-response-failed');
+      throw new Error('Failed while waiting for Perplexity response.');
     }
   }
 
-  private async getPerplexityResponse(page: Page, type: string) {
-    this.logger.log(`🖱️ [${type}] Finding and clicking the 'Copy' button in the response...`);
+  private async getPerplexityResponse(page: Page) {
+    this.logger.log(`🖱️ Finding and clicking the 'Copy' button in the response...`);
     try {
       await page.waitForSelector(this.COPY_BUTTON_SELECTOR, { state: 'visible', timeout: 10000 });
       await page.click(this.COPY_BUTTON_SELECTOR);
-      this.logger.log(`✅ [${type}] 'Copy' button clicked successfully.`);
+      this.logger.log(`✅ 'Copy' button clicked successfully.`);
       await page.waitForTimeout(1000);
     } catch (error) {
       this.logger.error(
-        `[Copy Button Error] Failed to find or click the 'Copy' button. (type: ${type})`,
+        `[Copy Button Error] Failed to find or click the 'Copy' button.`,
         error.stack,
       );
-      await this.saveDebugInfo(page, `copy-button-failed-${type}`);
+      await this.saveDebugInfo(page, 'copy-button-failed');
       throw new Error(
-        `[${type}] Could not find the 'Copy' button. Ensure a code block is present in the Perplexity response.`,
+        `Could not find the 'Copy' button. Ensure a code block is present in the Perplexity response.`,
       );
     }
 
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    this.logger.log(`📋 [${type}] Successfully read clipboard content.`);
+    this.logger.log('📋 Successfully read clipboard content.');
 
     if (!clipboardContent) {
       this.logger.error(
         {
-          message: `[Clipboard Empty] Clipboard is empty for type: ${type}`,
+          message: '[Clipboard Empty] Clipboard is empty',
         },
         'Clipboard Empty',
       );
-      throw new Error(`[${type}] Failed to read from clipboard or clipboard is empty.`);
+      throw new Error('Failed to read from clipboard or clipboard is empty.');
     }
 
     this.logger.log({
-      message: `[Raw Clipboard Content] for type: ${type}`,
+      message: '[Raw Clipboard Content]',
       content: clipboardContent,
     });
 
     try {
       const parsedJson = JSON.parse(clipboardContent);
-      this.logger.log(`✅ [${type}] Successfully parsed clipboard content as JSON.`);
+      this.logger.log('✅ Successfully parsed clipboard content as JSON.');
       this.logger.debug({
-        message: `[Debug] Parsed JSON for ${type}`,
+        message: '[Debug] Parsed JSON',
         parsedJson,
       });
       return parsedJson;
     } catch (error) {
       this.logger.error(
         {
-          message: `[JSON Parse Failed] Failed to parse clipboard content for type: ${type}`,
+          message: '[JSON Parse Failed] Failed to parse clipboard content',
           clipboardContent: clipboardContent,
           error: error.stack,
         },
         error.stack,
       );
-      throw new Error(`JSON parsing failed for type ${type}. Check error logs for details.`);
+      throw new Error('JSON parsing failed. Check error logs for details.');
     }
   }
 
