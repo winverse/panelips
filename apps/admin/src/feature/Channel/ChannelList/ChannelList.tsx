@@ -12,9 +12,10 @@ import { ChannelItem } from './ChannelItem';
 type ChannelListProps = {
   channels: string[];
   channelTitleMap: Record<string, string>;
+  channelLikedMap: Record<string, boolean>;
 };
 
-export function ChannelList({ channels, channelTitleMap }: ChannelListProps) {
+export function ChannelList({ channels, channelTitleMap, channelLikedMap }: ChannelListProps) {
   const trpc = useTRPC();
   const [, addScrapChannel] = useAtom(addScrapChannelAtom);
 
@@ -117,7 +118,12 @@ export function ChannelList({ channels, channelTitleMap }: ChannelListProps) {
           <ChannelEmptyState />
         ) : (
           channels.map((channel) => (
-            <ChannelItem key={channel} channel={channel} channelTitle={channelTitleMap[channel]} />
+            <ChannelItem
+              key={channel}
+              channel={channel}
+              channelTitle={channelTitleMap[channel]}
+              isLiked={channelLikedMap[channel] || false}
+            />
           ))
         )}
       </ul>

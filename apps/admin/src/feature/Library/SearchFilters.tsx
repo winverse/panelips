@@ -8,10 +8,12 @@ interface SearchFiltersProps {
   startDate: string;
   endDate: string;
   channelFilter: string;
+  onlyLikedChannels: boolean;
   isLoading: boolean;
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
   onChannelFilterChange: (filter: string) => void;
+  onOnlyLikedChannelsChange: (checked: boolean) => void;
   onSearch: () => void;
 }
 
@@ -19,10 +21,12 @@ export function SearchFilters({
   startDate,
   endDate,
   channelFilter,
+  onlyLikedChannels,
   isLoading,
   onStartDateChange,
   onEndDateChange,
   onChannelFilterChange,
+  onOnlyLikedChannelsChange,
   onSearch,
 }: SearchFiltersProps) {
   return (
@@ -60,6 +64,31 @@ export function SearchFilters({
           variant="outline"
           style={{ minWidth: '200px' }}
         />
+      </div>
+
+      <div className={css({ display: 'flex', alignItems: 'center', gap: '0.5rem', mb: '0.5rem' })}>
+        <input
+          id="onlyLikedChannels"
+          type="checkbox"
+          checked={onlyLikedChannels}
+          onChange={(e) => onOnlyLikedChannelsChange(e.target.checked)}
+          className={css({
+            w: '1rem',
+            h: '1rem',
+            cursor: 'pointer',
+          })}
+        />
+        <label
+          htmlFor="onlyLikedChannels"
+          className={css({
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            color: 'text.secondary',
+            cursor: 'pointer',
+          })}
+        >
+          좋아요한 채널만
+        </label>
       </div>
 
       <Button

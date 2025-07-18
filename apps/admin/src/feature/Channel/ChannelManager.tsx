@@ -33,6 +33,16 @@ export function ChannelManager() {
       {} as Record<string, string>,
     ) || {};
 
+  // URL-isLiked 매핑 생성
+  const channelLikedMap =
+    channelData?.reduce(
+      (acc, channel) => {
+        acc[channel.url] = channel.isLiked;
+        return acc;
+      },
+      {} as Record<string, boolean>,
+    ) || {};
+
   useEffect(() => {
     if (!channelData || !Array.isArray(channelData)) return;
     const result = channelData.map((channel) => {
@@ -165,7 +175,11 @@ export function ChannelManager() {
           gap: '1rem',
         })}
       >
-        <ChannelList channels={channels} channelTitleMap={channelTitleMap} />
+        <ChannelList
+          channels={channels}
+          channelTitleMap={channelTitleMap}
+          channelLikedMap={channelLikedMap}
+        />
         <ChannelScrapBoard />
       </div>
     </div>

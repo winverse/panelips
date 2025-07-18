@@ -14,7 +14,8 @@ import { YoutubeRepository } from './youtube.repository.js';
 
 interface YoutubeServiceInterface {
   getNewVideos(url: string): Promise<YoutubeVideo[]>;
-  getChannels(): Promise<{ url: string; title: string }[]>;
+  getChannels(): Promise<{ url: string; title: string; isLiked: boolean }[]>;
+  toggleChannelLike(url: string): Promise<{ success: boolean; isLiked: boolean }>;
 }
 
 @Injectable()
@@ -268,12 +269,36 @@ export class YoutubeService implements YoutubeServiceInterface {
     }
   }
 
-  public async getChannels(): Promise<{ url: string; title: string }[]> {
+  public async getChannels(): Promise<{ url: string; title: string; isLiked: boolean }[]> {
     const channels = await this.youtubeRepository.findChannels();
     return channels.map((channel) => ({
       url: channel.url,
       title: channel.title,
+      isLiked: channel.isLiked,
     }));
+  }
+
+  public async toggleChannelLike(url: string): Promise<{ success: boolean; isLiked: boolean }> {
+    try {
+      const channel = await this.youtubeRepository.findChannelByUrl(url);
+      if (!channel) {
+        throw new Error('채널을 찾을 수 없습니다.');
+      }
+
+      const newLikedState = !channel.isLiked;
+      await this.youtubeRepository.updateChannelLike(channel.channelId, newLikedState);
+
+      return {
+        success: true,
+        isLiked: newLikedState,
+      };
+    } catch (error: any) {
+      this.logger.error(`채널 좋아요 토글 중 오류 발생: ${error.message}`, error.stack);
+      return {
+        success: false,
+        isLiked: false,
+      };
+    }
   }
 
   public async isJsonAnalysisComplete(url: string): Promise<boolean> {
@@ -290,6 +315,7 @@ export class YoutubeService implements YoutubeServiceInterface {
     startDate: Date,
     endDate: Date,
     channelFilter?: string,
+    onlyLikedChannels?: boolean,
   ): Promise<
     {
       id: string;
@@ -308,6 +334,7 @@ export class YoutubeService implements YoutubeServiceInterface {
       startDate,
       endDate,
       channelFilter,
+      onlyLikedChannels,
     );
 
     return videos.map((video) => ({

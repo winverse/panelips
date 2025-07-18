@@ -20,6 +20,7 @@ export default function Library() {
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [channelFilter, setChannelFilter] = useState('');
+  const [onlyLikedChannels, setOnlyLikedChannels] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
   const trpc = useTRPC();
@@ -33,6 +34,7 @@ export default function Library() {
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       channelFilter: channelFilter.trim() || undefined,
+      onlyLikedChannels: onlyLikedChannels || undefined,
     }),
     enabled: true,
   });
@@ -75,10 +77,12 @@ export default function Library() {
           startDate={startDate}
           endDate={endDate}
           channelFilter={channelFilter}
+          onlyLikedChannels={onlyLikedChannels}
           isLoading={isLoading}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onChannelFilterChange={setChannelFilter}
+          onOnlyLikedChannelsChange={setOnlyLikedChannels}
           onSearch={handleSearch}
         />
 

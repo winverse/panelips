@@ -39,9 +39,17 @@ export function createYoutubeRouter(app: INestApplication) {
 
     getChannels: trpcService.procedure
       .meta({ description: '채널 정보 불러오기' })
-      .output(z.array(z.object({ url: z.string(), title: z.string() })))
+      .output(z.array(z.object({ url: z.string(), title: z.string(), isLiked: z.boolean() })))
       .query(async () => {
         return youtubeService.getChannels();
+      }),
+
+    toggleChannelLike: trpcService.procedure
+      .meta({ description: '채널 좋아요 토글' })
+      .input(z.object({ url: z.string() }))
+      .output(z.object({ success: z.boolean(), isLiked: z.boolean() }))
+      .mutation(async ({ input }) => {
+        return youtubeService.toggleChannelLike(input.url);
       }),
 
     getVideoDataByDateRange: trpcService.procedure
@@ -51,6 +59,7 @@ export function createYoutubeRouter(app: INestApplication) {
           startDate: z.string().datetime(),
           endDate: z.string().datetime(),
           channelFilter: z.string().optional(), // 채널 ID 또는 채널명
+          onlyLikedChannels: z.boolean().optional(), // 좋아요한 채널만
         }),
       )
       .output(
@@ -72,7 +81,12 @@ export function createYoutubeRouter(app: INestApplication) {
       .query(async ({ input }) => {
         const startDate = new Date(input.startDate);
         const endDate = new Date(input.endDate);
-        return youtubeService.getVideoDataByDateRange(startDate, endDate, input.channelFilter);
+        return youtubeService.getVideoDataByDateRange(
+          startDate,
+          endDate,
+          input.channelFilter,
+          input.onlyLikedChannels,
+        );
       }),
   });
 }

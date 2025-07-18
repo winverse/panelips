@@ -23,6 +23,13 @@ export class YoutubeRepository {
     return this.mongo.youtubeChannel.create({ data });
   }
 
+  public async updateChannelLike(channelId: string, isLiked: boolean) {
+    return this.mongo.youtubeChannel.update({
+      where: { channelId },
+      data: { isLiked },
+    });
+  }
+
   public async findVideos(channelId: string, publishedAfter: Date) {
     return this.mongo.youtubeVideo.findMany({
       where: {
@@ -130,7 +137,12 @@ export class YoutubeRepository {
   }
 
   // 기간별 script/json 데이터 조회 (채널 필터링 포함)
-  public async findVideoDataByDateRange(startDate: Date, endDate: Date, channelFilter?: string) {
+  public async findVideoDataByDateRange(
+    startDate: Date,
+    endDate: Date,
+    channelFilter?: string,
+    onlyLikedChannels?: boolean,
+  ) {
     const whereCondition: Prisma.YoutubeVideoWhereInput = {
       publishedAt: {
         gte: startDate,
@@ -138,14 +150,31 @@ export class YoutubeRepository {
       },
     };
 
+    // 채널 필터 조건들을 배열로 관리
+    const channelConditions: Prisma.YoutubeChannelWhereInput[] = [];
+
     // 채널 필터가 있는 경우 채널 ID 또는 채널명으로 필터링
     if (channelFilter) {
       console.log('channelFilter', channelFilter);
-      whereCondition.channel = {
+      channelConditions.push({
         OR: [
           { channelId: { contains: channelFilter, mode: 'insensitive' } },
           { title: { contains: channelFilter, mode: 'insensitive' } },
         ],
+      });
+    }
+
+    // 좋아요한 채널만 필터링
+    if (onlyLikedChannels) {
+      channelConditions.push({
+        isLiked: true,
+      });
+    }
+
+    // 채널 조건이 있는 경우 적용
+    if (channelConditions.length > 0) {
+      whereCondition.channel = {
+        AND: channelConditions,
       };
     }
 

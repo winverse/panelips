@@ -5,18 +5,20 @@ import { useTRPC } from '@src/lib/trpc';
 import { addScrapChannelAtom, removeChannelAtom, ScrapVideo } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
-import { MdMailOutline, MdMovie } from 'react-icons/md';
+import { MdFavorite, MdFavoriteBorder, MdMailOutline, MdMovie } from 'react-icons/md';
 import { toast } from 'react-toastify';
 
 type ChannelItemProps = {
   channel: string;
   channelTitle?: string;
+  isLiked: boolean;
 };
 
-export function ChannelItem({ channel, channelTitle }: ChannelItemProps) {
+export function ChannelItem({ channel, channelTitle, isLiked }: ChannelItemProps) {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [_, addScrapChannel] = useAtom(addScrapChannelAtom);
 
   const [, removeChannel] = useAtom(removeChannelAtom);
@@ -30,6 +32,26 @@ export function ChannelItem({ channel, channelTitle }: ChannelItemProps) {
     content: '클릭하여 삭제',
     position: 'top',
   });
+
+  const { mutateAsync: toggleChannelLike } = useMutation(
+    trpc.youtube.toggleChannelLike.mutationOptions(),
+  );
+
+  const handleToggleLike = async () => {
+    try {
+      const result = await toggleChannelLike({ url: channel });
+      if (result.success) {
+        // 채널 목록 쿼리를 무효화하여 새로운 데이터를 가져오도록 함
+        queryClient.invalidateQueries({ queryKey: ['youtube', 'getChannels'] });
+        toast.success(result.isLiked ? '채널을 좋아요했습니다!' : '채널 좋아요를 취소했습니다!');
+      } else {
+        toast.error('좋아요 상태 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('좋아요 토글 오류:', error);
+      toast.error('좋아요 상태 변경 중 오류가 발생했습니다.');
+    }
+  };
 
   const _handelAddScrapChannel = (channels: ScrapVideo[]) => {
     addScrapChannel(channels);
@@ -50,6 +72,22 @@ export function ChannelItem({ channel, channelTitle }: ChannelItemProps) {
           {channelTitle || decodeURIComponent(channel)}
         </Button>
         <tooltip.TooltipComponent />
+
+        <Button
+          size="sm"
+          variant="ghost"
+          type="button"
+          onClick={handleToggleLike}
+          className={css({
+            ml: '0.5rem',
+            color: isLiked ? 'red.500' : 'gray.400',
+            _hover: {
+              color: isLiked ? 'red.600' : 'red.500',
+            },
+          })}
+        >
+          {isLiked ? <MdFavorite size={18} /> : <MdFavoriteBorder size={18} />}
+        </Button>
         {isPending && (
           <div
             className={css({
