@@ -71,6 +71,7 @@ export function createYoutubeRouter(app: INestApplication) {
             url: z.string(),
             publishedAt: z.date(),
             channelTitle: z.string(),
+            channelIsLiked: z.boolean(),
             hasScript: z.boolean(),
             hasJson: z.boolean(),
             scriptData: z.any().nullable(),

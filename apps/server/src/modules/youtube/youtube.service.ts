@@ -324,6 +324,7 @@ export class YoutubeService implements YoutubeServiceInterface {
       url: string;
       publishedAt: Date;
       channelTitle: string;
+      channelIsLiked: boolean;
       hasScript: boolean;
       hasJson: boolean;
       scriptData: any;
@@ -344,6 +345,7 @@ export class YoutubeService implements YoutubeServiceInterface {
       url: video.url,
       publishedAt: video.publishedAt,
       channelTitle: video.channel.title,
+      channelIsLiked: video.channel.isLiked,
       hasScript: !!video.script,
       hasJson: !!video.json,
       scriptData: video.script?.rawData || null,

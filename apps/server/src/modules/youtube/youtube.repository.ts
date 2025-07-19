@@ -187,6 +187,7 @@ export class YoutubeRepository {
           select: {
             title: true,
             channelId: true,
+            isLiked: true,
           },
         },
       },

@@ -5,6 +5,7 @@ export interface VideoData {
   url: string;
   publishedAt: Date;
   channelTitle: string;
+  channelIsLiked: boolean;
   hasScript: boolean;
   hasJson: boolean;
   scriptData?: any;
@@ -48,6 +49,7 @@ export const downloadBulkScripts = async (
         url: video.url,
         publishedAt: video.publishedAt,
         channelTitle: video.channelTitle,
+        channelIsLiked: video.channelIsLiked,
       },
       scriptData: video.scriptData,
     })),
@@ -92,6 +94,7 @@ export const downloadBulkJsons = async (
         url: video.url,
         publishedAt: video.publishedAt,
         channelTitle: video.channelTitle,
+        channelIsLiked: video.channelIsLiked,
       },
       analysisData: video.jsonData,
     })),
