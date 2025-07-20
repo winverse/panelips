@@ -14,6 +14,7 @@ import { YoutubeRepository } from './youtube.repository.js';
 
 interface YoutubeServiceInterface {
   getNewVideos(url: string): Promise<YoutubeVideo[]>;
+  getVideosByDate(url: string, targetDate: Date): Promise<YoutubeVideo[]>;
   getChannels(): Promise<{ url: string; title: string; isLiked: boolean }[]>;
   toggleChannelLike(url: string): Promise<{ success: boolean; isLiked: boolean }>;
 }
@@ -35,13 +36,18 @@ export class YoutubeService implements YoutubeServiceInterface {
   }
 
   public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
+    // 어제 날짜로 getVideosByDate 호출
+    const yesterday = subDays(new Date(), 1);
+    return this.getVideosByDate(url, yesterday);
+  }
+
+  public async getVideosByDate(url: string, targetDate: Date): Promise<YoutubeVideo[]> {
     const channelId = await this.getChannelId(url);
 
-    // 1. 어제 날짜를 기준으로 시작과 끝 시간 계산
-    const yesterday = subDays(new Date(), 1);
-    const publishedAfter = startOfDay(yesterday).toISOString();
-    const publishedBefore = endOfDay(yesterday).toISOString();
-    const dateKey = format(yesterday, 'yyyy-MM-dd');
+    // 1. 지정된 날짜를 기준으로 시작과 끝 시간 계산
+    const publishedAfter = startOfDay(targetDate).toISOString();
+    const publishedBefore = endOfDay(targetDate).toISOString();
+    const dateKey = format(targetDate, 'yyyy-MM-dd');
 
     // 2. 날짜와 채널 ID를 포함한 새로운 캐시 키 생성
     const cacheKey = `youtube-videos:${dateKey}:${channelId}`;
@@ -127,12 +133,17 @@ export class YoutubeService implements YoutubeServiceInterface {
           (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
         );
 
-      this.logger.log(`Found ${videoInfo.length} new videos (5min-2h) from URL: ${url}`);
+      this.logger.log(
+        `Found ${videoInfo.length} new videos (5min-2h) from URL: ${url} on ${dateKey}`,
+      );
       await this.cacheManager.set(cacheKey, videoInfo);
 
       return await this.setHandleAnalysisCompleted(videoInfo);
     } catch (error: any) {
-      this.logger.error(`새 유튜브 동영상 가져오는 중 오류 발생: ${error.message}`, error.stack);
+      this.logger.error(
+        `유튜브 동영상 가져오는 중 오류 발생 (${dateKey}): ${error.message}`,
+        error.stack,
+      );
 
       if (error.status === 403 && error.message?.includes('quota')) {
         throw new Error('YouTube API 일일 사용량 한도를 초과했습니다. 내일 다시 시도해주세요.');
@@ -143,7 +154,7 @@ export class YoutubeService implements YoutubeServiceInterface {
       if (error.status >= 500) {
         throw new Error('YouTube 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }
-      throw new Error(`새 동영상 가져오기 실패: ${error.message}`);
+      throw new Error(`동영상 가져오기 실패 (${dateKey}): ${error.message}`);
     }
   }
 

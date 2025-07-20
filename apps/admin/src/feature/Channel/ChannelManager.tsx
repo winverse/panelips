@@ -3,7 +3,7 @@
 import { Button } from '@src/components/Button';
 import { Input } from '@src/components/Input';
 import { useTRPC } from '@src/lib/trpc';
-import { addChannelAtom, channelsAtom, channelUrlAtom } from '@src/store';
+import { addChannelAtom, addScrapChannelAtom, channelsAtom, channelUrlAtom } from '@src/store';
 import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { useAtom } from 'jotai';
 import { KeyboardEvent, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { ChannelList } from './ChannelList';
+
 import { ChannelScrapBoard } from './ScrapBoard';
 
 export function ChannelManager() {
@@ -18,6 +19,7 @@ export function ChannelManager() {
   const [channelUrl, setChannelUrl] = useAtom(channelUrlAtom);
   const [channels] = useAtom(channelsAtom);
   const [, addChannel] = useAtom(addChannelAtom);
+  const [, addScrapChannel] = useAtom(addScrapChannelAtom);
   const [isGoogleLoginLoading, setIsGoogleLoginLoading] = useState(false);
 
   const { mutateAsync: googleLogin } = useMutation(trpc.automation.google.login.mutationOptions());
@@ -102,6 +104,15 @@ export function ChannelManager() {
     handleAddChannel(channelUrl);
   };
 
+  const _handleVideosFound = (videos: any[]) => {
+    if (videos.length > 0) {
+      addScrapChannel(videos);
+      toast.success(`${videos.length}개의 영상이 스크랩 대상에 추가되었습니다.`);
+    } else {
+      toast.info('검색된 영상이 없습니다.');
+    }
+  };
+
   return (
     <div
       className={css({
@@ -166,6 +177,9 @@ export function ChannelManager() {
           추가
         </Button>
       </div>
+
+      {/* 모든 채널 날짜별 영상 검색 섹션 */}
+      <div className={css({ mb: '1rem' })} />
 
       <div
         className={flex({

@@ -37,6 +37,37 @@ export function createYoutubeRouter(app: INestApplication) {
         }
       }),
 
+    getVideosByDate: trpcService.procedure
+      .meta({ description: '특정 날짜의 유튜브 동영상 가져오기' })
+      .input(
+        z.object({
+          url: z.string().min(1).max(100).url(),
+          targetDate: z.string().datetime(),
+        }),
+      )
+      .output(
+        z.array(
+          z.object({
+            title: z.string(),
+            url: z.string(),
+            thumbnail: z.string().optional(),
+            description: z.string(),
+            channelId: z.string(),
+            isJsonAnalysisComplete: z.boolean(),
+            isScriptAnalysisComplete: z.boolean(),
+          }),
+        ),
+      )
+      .query(async ({ input }) => {
+        try {
+          const targetDate = new Date(input.targetDate);
+          return youtubeService.getVideosByDate(input.url, targetDate);
+        } catch (error) {
+          console.error('특정 날짜 유튜브 동영상 가져오는 중 오류 발생:', error);
+          throw new Error(`동영상 가져오기 실패: ${error.message || '알 수 없는 오류'}`);
+        }
+      }),
+
     getChannels: trpcService.procedure
       .meta({ description: '채널 정보 불러오기' })
       .output(z.array(z.object({ url: z.string(), title: z.string(), isLiked: z.boolean() })))

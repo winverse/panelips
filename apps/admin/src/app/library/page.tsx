@@ -36,7 +36,7 @@ export default function Library() {
       channelFilter: channelFilter.trim() || undefined,
       onlyLikedChannels: onlyLikedChannels || undefined,
     }),
-    enabled: true,
+    enabled: false,
   });
 
   const handleSearch = () => {
