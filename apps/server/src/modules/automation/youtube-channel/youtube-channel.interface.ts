@@ -1,9 +1,10 @@
-export type YoutubeChannelScrapArgs = {
+export interface YoutubeChannelScrapArgs {
   title: string;
-  description: string;
   url: string;
+  description: string;
   channelId: string;
-};
+  publishedAt: string;
+}
 
 export type JsonPromptResult = {
   isRelatedAsset: boolean;

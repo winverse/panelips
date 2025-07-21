@@ -4,6 +4,7 @@ interface PromptInput {
   title: string;
   channelId: string;
   videoId: string;
+  publishedAt: string;
 }
 
 function getJsonPrompt(input: PromptInput): string {
@@ -48,9 +49,10 @@ function getJsonPrompt(input: PromptInput): string {
         "url": "${url}",
         "title": "${title}",
         "summary": "영상의 전체 주제를 한두 문장으로만 요약 (상세한 내용이나 흐름 설명 금지)",
+        "publishedAt": "${input.publishedAt}"
         "relatedStocks": ["화장품", "삼성"],
         "channelId": "${channelId}",
-        "publishedAt": "YYYY-MM-DDTHH:MM:SSZ" // 촬영 일자가 따로 적혀 있으면 그걸 publishedAt으로 적어주고 형식은 항상 "YYYY-MM-DDTHH:MM:SSZ"으로 적어줘
+        "publishedAt": "YYYY-MM-DDTHH:MM:SSZ"
     },
     "panels": [
         {

@@ -14,7 +14,8 @@ export type YoutubeVideo = {
   title: string;
   url: string;
   description: string;
-  thumbnail: string;
+  thumbnail?: string;
+  publishedAt: string;
   channelId: string;
   isJsonAnalysisComplete: boolean;
   isScriptAnalysisComplete: boolean;

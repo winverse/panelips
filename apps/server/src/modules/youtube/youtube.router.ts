@@ -6,6 +6,7 @@ import { YoutubeService } from './youtube.service.js';
 export function createYoutubeRouter(app: INestApplication) {
   const trpcService = app.get(TrpcService);
   const youtubeService = app.get(YoutubeService);
+  const _KST_TIMEZONE = 'Asia/Seoul';
 
   return trpcService.router({
     getNewVideo: trpcService.procedure

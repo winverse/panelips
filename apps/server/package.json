@@ -43,6 +43,7 @@
     "cache-manager": "^5.7.0",
     "crawlee": "^3.13.10",
     "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "es-toolkit": "^1.39.7",
     "fastify": "^5.4.0",
     "gaxios": "^7.1.1",

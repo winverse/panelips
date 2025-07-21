@@ -9,6 +9,7 @@ import { YOUTUBE_ERROR } from '@src/common/errors/index.js';
 import { parseISO8601Duration } from '@src/common/utils/date.utils.js';
 import type { Cache } from 'cache-manager';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { isEmpty } from 'es-toolkit/compat';
 import { YoutubeRepository } from './youtube.repository.js';
 
@@ -23,6 +24,7 @@ interface YoutubeServiceInterface {
 export class YoutubeService implements YoutubeServiceInterface {
   private readonly logger = new Logger(YoutubeService.name);
   private readonly youtubeClient: youtube_v3.Youtube;
+  private readonly KST_TIMEZONE = 'Asia/Seoul';
 
   constructor(
     private readonly configService: ConfigService<Config>,
@@ -36,7 +38,6 @@ export class YoutubeService implements YoutubeServiceInterface {
   }
 
   public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
-    // 어제 날짜로 getVideosByDate 호출
     const yesterday = subDays(new Date(), 1);
     return this.getVideosByDate(url, yesterday);
   }
@@ -44,12 +45,11 @@ export class YoutubeService implements YoutubeServiceInterface {
   public async getVideosByDate(url: string, targetDate: Date): Promise<YoutubeVideo[]> {
     const channelId = await this.getChannelId(url);
 
-    // 1. 지정된 날짜를 기준으로 시작과 끝 시간 계산
-    const publishedAfter = startOfDay(targetDate).toISOString();
-    const publishedBefore = endOfDay(targetDate).toISOString();
-    const dateKey = format(targetDate, 'yyyy-MM-dd');
+    const kstDate = fromZonedTime(startOfDay(targetDate), this.KST_TIMEZONE);
+    const publishedAfter = startOfDay(kstDate).toISOString();
+    const publishedBefore = endOfDay(kstDate).toISOString();
+    const dateKey = format(kstDate, 'yyyy-MM-dd');
 
-    // 2. 날짜와 채널 ID를 포함한 새로운 캐시 키 생성
     const cacheKey = `youtube-videos:${dateKey}:${channelId}`;
 
     const cachedVideos = await this.cacheManager.get<YoutubeVideo[]>(cacheKey);
@@ -127,11 +127,10 @@ export class YoutubeService implements YoutubeServiceInterface {
             thumbnail:
               video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
             channelId,
+            publishedAt: video.snippet?.publishedAt!,
           };
         })
-        .filter(
-          (video): video is YoutubeVideo => video !== null && !!video.title && !!video.thumbnail,
-        );
+        .filter((video): video is YoutubeVideo & { thumbnail: string } => !!video?.thumbnail);
 
       this.logger.log(
         `Found ${videoInfo.length} new videos (5min-2h) from URL: ${url} on ${dateKey}`,
@@ -342,9 +341,12 @@ export class YoutubeService implements YoutubeServiceInterface {
       jsonData: any;
     }[]
   > {
+    const kstStartDate = startOfDay(fromZonedTime(startDate, this.KST_TIMEZONE));
+    const kstEndDate = endOfDay(fromZonedTime(endDate, this.KST_TIMEZONE));
+
     const videos = await this.youtubeRepository.findVideoDataByDateRange(
-      startDate,
-      endDate,
+      kstStartDate,
+      kstEndDate,
       channelFilter,
       onlyLikedChannels,
     );

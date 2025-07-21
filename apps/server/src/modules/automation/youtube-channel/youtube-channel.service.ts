@@ -106,6 +106,7 @@ export class YoutubeChannelService implements OnModuleDestroy {
     url,
     description,
     channelId,
+    publishedAt,
   }: YoutubeChannelScrapArgs) {
     const videoId = extractYouTubeVideoId(url);
     if (!videoId) {
@@ -133,7 +134,7 @@ export class YoutubeChannelService implements OnModuleDestroy {
         videoId,
         description,
         summary: '',
-        publishedAt: new Date(),
+        publishedAt: new Date(publishedAt),
         isRelatedAsset: false,
         relatedStocks: [],
         channel: {
@@ -156,6 +157,7 @@ export class YoutubeChannelService implements OnModuleDestroy {
         url,
         channelId,
         videoId,
+        publishedAt: video.publishedAt.toISOString(),
       });
       await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
@@ -202,7 +204,6 @@ export class YoutubeChannelService implements OnModuleDestroy {
         isRelatedAsset: json.isRelatedAsset,
         summary: videoInfo.summary,
         relatedStocks: json.videoInfo.relatedStocks,
-        publishedAt: new Date(videoInfo.publishedAt),
       },
     );
   }

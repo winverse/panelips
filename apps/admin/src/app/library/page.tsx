@@ -1,9 +1,11 @@
 'use client';
 
+import { Modal } from '@src/components/Modal';
 import {
   downloadBulkJsons,
   downloadBulkScripts,
   downloadData,
+  IntegratedReadableView,
   SearchFilters,
   SearchResultsHeader,
   type VideoData,
@@ -22,6 +24,7 @@ export default function Library() {
   const [channelFilter, setChannelFilter] = useState('');
   const [onlyLikedChannels, setOnlyLikedChannels] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [isReadableModalOpen, setIsReadableModalOpen] = useState(false);
 
   const trpc = useTRPC();
 
@@ -45,6 +48,14 @@ export default function Library() {
 
   const handleToggleDetails = (videoId: string) => {
     setSelectedVideo(selectedVideo === videoId ? null : videoId);
+  };
+
+  const handleOpenReadableModal = () => {
+    setIsReadableModalOpen(true);
+  };
+
+  const handleCloseReadableModal = () => {
+    setIsReadableModalOpen(false);
   };
 
   const handleDownloadBulkScripts = () => {
@@ -90,8 +101,10 @@ export default function Library() {
           <div className={css({ display: 'flex', flexDirection: 'column', gap: '1rem' })}>
             <SearchResultsHeader
               videoCount={videoData.length}
+              videos={videoData as VideoData[]}
               onDownloadBulkScripts={handleDownloadBulkScripts}
               onDownloadBulkJsons={handleDownloadBulkJsons}
+              onOpenReadableView={handleOpenReadableModal}
             />
 
             <div className={css({ display: 'grid', gap: '1rem' })}>
@@ -121,6 +134,16 @@ export default function Library() {
             선택한 기간에 해당하는 데이터가 없습니다.
           </div>
         )}
+
+        {/* 읽기 모달 */}
+        <Modal
+          isOpen={isReadableModalOpen}
+          onClose={handleCloseReadableModal}
+          title="인사이트 읽기"
+          size="lg"
+        >
+          {videoData && <IntegratedReadableView videos={videoData as VideoData[]} />}
+        </Modal>
       </div>
     </DashboardLayout>
   );

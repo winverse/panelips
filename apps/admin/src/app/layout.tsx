@@ -1,6 +1,6 @@
 import '@src/styles/globals.css';
+import { DynamicThemeProvider } from '@src/providers/DynamicThemeProvider';
 import { ReactQueryProvider } from '@src/providers/reactQueryProvider';
-import { ThemeProvider } from '@src/providers/themeProvider';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
@@ -27,11 +27,11 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider>
+        <DynamicThemeProvider>
           <ReactQueryProvider>{children}</ReactQueryProvider>
-        </ThemeProvider>
+        </DynamicThemeProvider>
       </body>
     </html>
   );

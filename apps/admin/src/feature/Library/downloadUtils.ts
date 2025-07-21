@@ -55,11 +55,11 @@ export const downloadBulkScripts = async (
     })),
   };
 
-  const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `[script]_${startDate}-${endDate}.json`;
+  a.download = `[script]_${startDate}-${endDate}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -100,11 +100,11 @@ export const downloadBulkJsons = async (
     })),
   };
 
-  const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `[json]_${startDate}-${endDate}.json`;
+  a.download = `[json]_${startDate}-${endDate}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

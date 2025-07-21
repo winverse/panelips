@@ -13,9 +13,10 @@ export function createYoutubeChannelRouter(app: INestApplication) {
       .input(
         z.object({
           title: z.string(),
-          description: z.string(),
           url: z.string(),
+          description: z.string(),
           channelId: z.string(),
+          publishedAt: z.string(),
         }),
       )
       .mutation(async ({ input }) => {
