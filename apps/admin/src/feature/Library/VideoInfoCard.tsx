@@ -2,17 +2,13 @@ import { css } from '@styled-system/css';
 import { flex } from '@styled-system/patterns';
 import { format } from 'date-fns';
 import { MdPlayCircleOutline } from 'react-icons/md';
-import type { PanelipsJsonData } from './types';
+import type { VideoData } from './downloadUtils';
 
 interface VideoInfoCardProps {
-  jsonData: PanelipsJsonData;
-  channelTitle: string;
-  publishedAt: Date;
+  videoInfo: VideoData;
 }
 
-export function VideoInfoCard({ jsonData, channelTitle, publishedAt }: VideoInfoCardProps) {
-  const { videoInfo } = jsonData;
-
+export function VideoInfoCard({ videoInfo }: VideoInfoCardProps) {
   return (
     <div
       className={css({
@@ -40,7 +36,7 @@ export function VideoInfoCard({ jsonData, channelTitle, publishedAt }: VideoInfo
       <div
         className={css({ fontSize: '0.9rem', color: 'text.secondary', mb: '1rem', pl: '1.75rem' })}
       >
-        {channelTitle} | {format(publishedAt, 'yyyy-MM-dd')}
+        {videoInfo.channelTitle} | {format(videoInfo.publishedAt, 'yyyy-MM-dd')}
       </div>
       {videoInfo.summary && (
         <p className={css({ fontSize: '0.9rem', color: 'text.secondary', m: 0, pl: '1.75rem' })}>

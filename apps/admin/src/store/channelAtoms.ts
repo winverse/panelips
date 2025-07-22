@@ -81,6 +81,7 @@ export type ScrapVideo = {
   thumbnail?: string | undefined;
   description: string;
   channelId: string;
+  publishedAt: string;
   isScriptAnalysisComplete: boolean;
   isJsonAnalysisComplete: boolean;
 };

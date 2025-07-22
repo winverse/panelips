@@ -202,11 +202,7 @@ export function ReadableView({ video }: ReadableViewProps) {
       </div>
 
       {/* 영상 정보 */}
-      <VideoInfoCard
-        jsonData={parsedData}
-        channelTitle={video.channelTitle}
-        publishedAt={video.publishedAt}
-      />
+      <VideoInfoCard videoInfo={video} />
 
       {/* 패널리스트 정보 */}
       {parsedData.panels && parsedData.panels.length > 0 && (

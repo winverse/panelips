@@ -70,7 +70,7 @@ export function ChannelScrapBoard() {
             description: channel.description,
             url: channel.url,
             channelId: channel.channelId,
-            publishedAt: new Date().toISOString(),
+            publishedAt: channel.publishedAt,
           } as any);
 
           if (result && typeof result === 'object' && 'success' in result && result.success) {

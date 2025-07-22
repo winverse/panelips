@@ -26,6 +26,7 @@ export function createYoutubeRouter(app: INestApplication) {
             channelId: z.string(),
             isJsonAnalysisComplete: z.boolean(),
             isScriptAnalysisComplete: z.boolean(),
+            publishedAt: z.string(),
           }),
         ),
       )
@@ -56,6 +57,7 @@ export function createYoutubeRouter(app: INestApplication) {
             channelId: z.string(),
             isJsonAnalysisComplete: z.boolean(),
             isScriptAnalysisComplete: z.boolean(),
+            publishedAt: z.string(),
           }),
         ),
       )

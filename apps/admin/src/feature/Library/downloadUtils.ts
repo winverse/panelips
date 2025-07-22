@@ -8,6 +8,7 @@ export interface VideoData {
   channelIsLiked: boolean;
   hasScript: boolean;
   hasJson: boolean;
+  summary?: string;
   scriptData?: any;
   jsonData?: any;
 }

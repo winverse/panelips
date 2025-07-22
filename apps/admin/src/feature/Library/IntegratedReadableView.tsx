@@ -16,7 +16,6 @@ import { PanelCard } from './PanelCard';
 import type { Insight, Panel, PanelipsJsonData } from './types';
 import { VideoInfoCard } from './VideoInfoCard';
 
-// ... (기존 인터페이스 및 파싱 함수는 동일하게 유지)
 interface IntegratedReadableViewProps {
   videos: VideoData[];
 }
@@ -89,7 +88,9 @@ const SectionHeader = ({
 );
 
 export function IntegratedReadableView({ videos }: IntegratedReadableViewProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    allInsights: true, // 종합 인사이트는 기본적으로 열려있도록 설정
+  });
 
   const processedVideos: ProcessedVideoData[] = videos
     .map((video) => {
@@ -106,10 +107,10 @@ export function IntegratedReadableView({ videos }: IntegratedReadableViewProps) 
 
   const allInsights = processedVideos
     .flatMap((item) =>
-      item.insights.map((insight, index) => ({
+      item.insights.map((insight) => ({
         ...insight,
         videoInfo: item.video,
-        uniqueId: `${item.video.id}-${index}`,
+        uniqueId: `${item.video.id}-${insight.startTimestamp}`,
       })),
     )
     .sort((a, b) => b.significance - a.significance);
@@ -152,34 +153,33 @@ export function IntegratedReadableView({ videos }: IntegratedReadableViewProps) 
             }
             title="종합 인사이트"
             count={allInsights.length}
-            isOpen={expandedSections.allInsights !== false} // 기본적으로 열려있음
+            isOpen={expandedSections.allInsights}
             onToggle={() => toggleSection('allInsights')}
           />
-          {expandedSections.allInsights !== false && (
+          {expandedSections.allInsights && (
             <div className={css({ p: '1.5rem' })}>
               {allInsights.length > 0 ? (
                 <div className={css({ display: 'grid', gap: '1.5rem' })}>
-                  {allInsights.map((insight, _index) => (
+                  {allInsights.map((insight) => (
                     <div
                       key={insight.uniqueId}
                       className={css({
                         border: '1px solid',
                         borderColor: 'gray.100',
                         borderRadius: 'md',
-                        p: '1rem',
+                        p: '1.5rem',
+                        bg: 'gray.25',
                       })}
                     >
-                      <VideoInfoCard
-                        jsonData={parseJsonData(insight.videoInfo.jsonData)!}
-                        channelTitle={insight.videoInfo.channelTitle}
-                        publishedAt={insight.videoInfo.publishedAt}
-                      />
+                      <VideoInfoCard videoInfo={insight.videoInfo} />
                       <InsightCard insights={[insight]} />
                     </div>
                   ))}
                 </div>
               ) : (
-                <p>중요도 3점 이상의 인사이트가 없습니다.</p>
+                <p className={css({ textAlign: 'center', color: 'text.secondary', p: '2rem' })}>
+                  중요도 3점 이상의 인사이트가 없습니다.
+                </p>
               )}
             </div>
           )}
