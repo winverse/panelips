@@ -1,3 +1,5 @@
+'use client';
+
 import { ONE_HOUR_AS_S } from '@constants/index.js';
 import type { Config } from '@core/config/index.js';
 import { youtube, youtube_v3 } from '@googleapis/youtube';
@@ -11,6 +13,9 @@ import type { Cache } from 'cache-manager';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { isEmpty } from 'es-toolkit/compat';
+
+const opossum = require('opossum');
+
 import { YoutubeRepository } from './youtube.repository.js';
 
 interface YoutubeServiceInterface {
@@ -25,6 +30,7 @@ export class YoutubeService implements YoutubeServiceInterface {
   private readonly logger = new Logger(YoutubeService.name);
   private readonly youtubeClient: youtube_v3.Youtube;
   private readonly KST_TIMEZONE = 'Asia/Seoul';
+  private readonly circuitBreaker: any;
 
   constructor(
     private readonly configService: ConfigService<Config>,
@@ -35,6 +41,93 @@ export class YoutubeService implements YoutubeServiceInterface {
       version: 'v3',
       auth: this.configService.get('google.apiKey'),
     });
+
+    const options: any = {
+      timeout: 15000, // 15초
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000, // 30초
+    };
+
+    this.circuitBreaker = new opossum(this.fetchVideosFromApi.bind(this), options);
+    this.circuitBreaker.fallback(() => {
+      this.logger.warn('[CircuitBreaker] Fallback: Returning empty array.');
+      return [];
+    });
+    this.circuitBreaker.on('open', () =>
+      this.logger.error('[CircuitBreaker] OPEN: The circuit breaker is now open.'),
+    );
+    this.circuitBreaker.on('close', () =>
+      this.logger.log('[CircuitBreaker] CLOSE: The circuit breaker is now closed.'),
+    );
+    this.circuitBreaker.on('halfOpen', () =>
+      this.logger.warn('[CircuitBreaker] HALF-OPEN: The circuit breaker is now half-open.'),
+    );
+  }
+
+  private async fetchVideosFromApi(
+    channelId: string,
+    publishedAfter: string,
+    publishedBefore: string,
+  ): Promise<YoutubeVideo[]> {
+    this.logger.log(`[API Call] Fetching videos for channel: ${channelId}`);
+    const searchResponse = await this.youtubeClient.search.list({
+      part: ['id'],
+      channelId: channelId,
+      publishedAfter,
+      publishedBefore,
+      type: ['video'],
+      order: 'date',
+      maxResults: 50,
+    });
+
+    const searchItems = searchResponse.data.items;
+    if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
+      return [];
+    }
+
+    const videoIds = searchItems.map((item) => item.id?.videoId).filter((id): id is string => !!id);
+
+    if (isEmpty(videoIds)) {
+      return [];
+    }
+
+    const detailsResponse = await this.youtubeClient.videos.list({
+      part: ['contentDetails', 'id', 'snippet'],
+      id: videoIds,
+      maxResults: 50,
+    });
+
+    const videosWithDetails = detailsResponse.data.items;
+    if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
+      return [];
+    }
+
+    const minDurationInSeconds = 5 * 60; // 5분 (300초)
+    const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
+    const filteredVideos = videosWithDetails.filter((video) => {
+      const duration = video.contentDetails?.duration;
+      if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
+      const durationInSeconds = parseISO8601Duration(duration);
+      return durationInSeconds >= minDurationInSeconds && durationInSeconds <= maxDurationInSeconds;
+    });
+
+    return filteredVideos
+      .map((video) => {
+        const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
+        if (!videoUrl) {
+          return null;
+        }
+        return {
+          url: videoUrl,
+          title: video.snippet?.title,
+          description: video.snippet?.description,
+          thumbnail:
+            video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
+          channelId,
+          publishedAt: video.snippet?.publishedAt!,
+        };
+      })
+      .filter((video): video is YoutubeVideo & { thumbnail: string } => !!video?.thumbnail);
   }
 
   public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
@@ -45,7 +138,7 @@ export class YoutubeService implements YoutubeServiceInterface {
   public async getVideosByDate(url: string, targetDate: Date): Promise<YoutubeVideo[]> {
     const channelId = await this.getChannelId(url);
 
-    const kstDate = fromZonedTime(startOfDay(targetDate), this.KST_TIMEZONE);
+    const kstDate = startOfDay(fromZonedTime(targetDate, this.KST_TIMEZONE));
     const publishedAfter = startOfDay(kstDate).toISOString();
     const publishedBefore = endOfDay(kstDate).toISOString();
     const dateKey = format(kstDate, 'yyyy-MM-dd');
@@ -59,100 +152,27 @@ export class YoutubeService implements YoutubeServiceInterface {
     }
 
     this.logger.log(
-      `[Cache Miss] No cache for channel ${channelId} on ${dateKey}. Fetching from API.`,
+      `[Cache Miss] No cache for channel ${channelId} on ${dateKey}. Fetching from API via Circuit Breaker.`,
     );
 
     try {
-      this.logger.log(`Searching videos for channel: ${channelId} published on ${dateKey}`);
-
-      // 3. 특정 하루 동안의 동영상을 검색하도록 API 파라미터 수정
-      const searchResponse = await this.youtubeClient.search.list({
-        part: ['id'],
-        channelId: channelId,
+      const videoInfo = (await this.circuitBreaker.fire(
+        channelId,
         publishedAfter,
         publishedBefore,
-        type: ['video'],
-        order: 'date',
-        maxResults: 50,
-      });
-
-      const searchItems = searchResponse.data.items;
-      if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
-        this.logger.log(`No new videos found for channel ${channelId} on ${dateKey}.`);
-        await this.cacheManager.set(cacheKey, []);
-        return [];
-      }
-
-      const videoIds = searchItems
-        .map((item) => item.id?.videoId)
-        .filter((id): id is string => !!id);
-
-      if (isEmpty(videoIds)) {
-        this.logger.log(`No new video IDs found for channel ${channelId} on ${dateKey}.`);
-        return [];
-      }
-
-      const detailsResponse = await this.youtubeClient.videos.list({
-        part: ['contentDetails', 'id', 'snippet'],
-        id: videoIds,
-        maxResults: 50,
-      });
-
-      const videosWithDetails = detailsResponse.data.items;
-      if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
-        return [];
-      }
-
-      const minDurationInSeconds = 5 * 60; // 5분 (300초)
-      const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
-      const filteredVideos = videosWithDetails.filter((video) => {
-        const duration = video.contentDetails?.duration;
-        if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
-        const durationInSeconds = parseISO8601Duration(duration);
-        return (
-          durationInSeconds >= minDurationInSeconds && durationInSeconds <= maxDurationInSeconds
-        );
-      });
-
-      const videoInfo = filteredVideos
-        .map((video) => {
-          const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
-          if (!videoUrl) {
-            return null;
-          }
-          return {
-            url: videoUrl,
-            title: video.snippet?.title,
-            description: video.snippet?.description,
-            thumbnail:
-              video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
-            channelId,
-            publishedAt: video.snippet?.publishedAt!,
-          };
-        })
-        .filter((video): video is YoutubeVideo & { thumbnail: string } => !!video?.thumbnail);
-
+      )) as YoutubeVideo[];
       this.logger.log(
         `Found ${videoInfo.length} new videos (5min-2h) from URL: ${url} on ${dateKey}`,
       );
-      await this.cacheManager.set(cacheKey, videoInfo);
-
+      if (videoInfo.length > 0) {
+        await this.cacheManager.set(cacheKey, videoInfo);
+      }
       return await this.setHandleAnalysisCompleted(videoInfo);
     } catch (error: any) {
       this.logger.error(
         `유튜브 동영상 가져오는 중 오류 발생 (${dateKey}): ${error.message}`,
         error.stack,
       );
-
-      if (error.status === 403 && error.message?.includes('quota')) {
-        throw new Error('YouTube API 일일 사용량 한도를 초과했습니다. 내일 다시 시도해주세요.');
-      }
-      if (error.status >= 400 && error.status < 500) {
-        throw new Error(`YouTube API 요청 오류: ${error.message}`);
-      }
-      if (error.status >= 500) {
-        throw new Error('YouTube 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      }
       throw new Error(`동영상 가져오기 실패 (${dateKey}): ${error.message}`);
     }
   }
