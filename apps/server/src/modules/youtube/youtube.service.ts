@@ -70,64 +70,76 @@ export class YoutubeService implements YoutubeServiceInterface {
     publishedBefore: string,
   ): Promise<YoutubeVideo[]> {
     this.logger.log(`[API Call] Fetching videos for channel: ${channelId}`);
-    const searchResponse = await this.youtubeClient.search.list({
-      part: ['id'],
-      channelId: channelId,
-      publishedAfter,
-      publishedBefore,
-      type: ['video'],
-      order: 'date',
-      maxResults: 50,
-    });
+    try {
+      const searchResponse = await this.youtubeClient.search.list({
+        part: ['id'],
+        channelId: channelId,
+        publishedAfter,
+        publishedBefore,
+        type: ['video'],
+        order: 'date',
+        maxResults: 50,
+      });
 
-    const searchItems = searchResponse.data.items;
-    if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
-      return [];
+      const searchItems = searchResponse.data.items;
+      if (!Array.isArray(searchItems) || isEmpty(searchItems)) {
+        return [];
+      }
+
+      const videoIds = searchItems
+        .map((item) => item.id?.videoId)
+        .filter((id): id is string => !!id);
+
+      if (isEmpty(videoIds)) {
+        return [];
+      }
+
+      const detailsResponse = await this.youtubeClient.videos.list({
+        part: ['contentDetails', 'id', 'snippet'],
+        id: videoIds,
+        maxResults: 50,
+      });
+
+      const videosWithDetails = detailsResponse.data.items;
+      if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
+        return [];
+      }
+
+      const minDurationInSeconds = 5 * 60; // 5분 (300초)
+      const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
+      const filteredVideos = videosWithDetails.filter((video) => {
+        const duration = video.contentDetails?.duration;
+        if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
+        const durationInSeconds = parseISO8601Duration(duration);
+        return (
+          durationInSeconds >= minDurationInSeconds && durationInSeconds <= maxDurationInSeconds
+        );
+      });
+
+      return filteredVideos
+        .map((video) => {
+          const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
+          if (!videoUrl) {
+            return null;
+          }
+          return {
+            url: videoUrl,
+            title: video.snippet?.title,
+            description: video.snippet?.description,
+            thumbnail:
+              video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
+            channelId,
+            publishedAt: video.snippet?.publishedAt!,
+          };
+        })
+        .filter((video): video is YoutubeVideo & { thumbnail: string } => !!video?.thumbnail);
+    } catch (error) {
+      this.logger.error(
+        '[API Call Failed] An error occurred while fetching videos from API',
+        error,
+      );
+      throw error; // 에러를 다시 던져서 상위 catch 블록에서 처리하도록 함
     }
-
-    const videoIds = searchItems.map((item) => item.id?.videoId).filter((id): id is string => !!id);
-
-    if (isEmpty(videoIds)) {
-      return [];
-    }
-
-    const detailsResponse = await this.youtubeClient.videos.list({
-      part: ['contentDetails', 'id', 'snippet'],
-      id: videoIds,
-      maxResults: 50,
-    });
-
-    const videosWithDetails = detailsResponse.data.items;
-    if (!Array.isArray(videosWithDetails) || isEmpty(videosWithDetails)) {
-      return [];
-    }
-
-    const minDurationInSeconds = 5 * 60; // 5분 (300초)
-    const maxDurationInSeconds = ONE_HOUR_AS_S * 2;
-    const filteredVideos = videosWithDetails.filter((video) => {
-      const duration = video.contentDetails?.duration;
-      if (!duration || video.snippet?.liveBroadcastContent !== 'none') return false;
-      const durationInSeconds = parseISO8601Duration(duration);
-      return durationInSeconds >= minDurationInSeconds && durationInSeconds <= maxDurationInSeconds;
-    });
-
-    return filteredVideos
-      .map((video) => {
-        const videoUrl = video.id && `https://www.youtube.com/watch?v=${video.id}`;
-        if (!videoUrl) {
-          return null;
-        }
-        return {
-          url: videoUrl,
-          title: video.snippet?.title,
-          description: video.snippet?.description,
-          thumbnail:
-            video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url,
-          channelId,
-          publishedAt: video.snippet?.publishedAt!,
-        };
-      })
-      .filter((video): video is YoutubeVideo & { thumbnail: string } => !!video?.thumbnail);
   }
 
   public async getNewVideos(url: string): Promise<YoutubeVideo[]> {
@@ -156,11 +168,12 @@ export class YoutubeService implements YoutubeServiceInterface {
     );
 
     try {
-      const videoInfo = (await this.circuitBreaker.fire(
-        channelId,
-        publishedAfter,
-        publishedBefore,
-      )) as YoutubeVideo[];
+      // const videoInfo = (await this.circuitBreaker.fire(
+      //   channelId,
+      //   publishedAfter,
+      //   publishedBefore,
+      // )) as YoutubeVideo[];
+      const videoInfo = await this.fetchVideosFromApi(channelId, publishedAfter, publishedBefore);
       this.logger.log(
         `Found ${videoInfo.length} new videos (5min-2h) from URL: ${url} on ${dateKey}`,
       );
